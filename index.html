@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#20251f">
+  <meta name="description" content="食刻：按减脂计划追踪饮食、三大营养素、体重与每周趋势。">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="食刻">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="app-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="app-icon.svg">
+  <link rel="stylesheet" href="styles.css">
+  <title>食刻 · 减脂饮食助手</title>
+</head>
+<body>
+  <div class="ambient ambient-one" aria-hidden="true"></div>
+  <div class="ambient ambient-two" aria-hidden="true"></div>
+
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#" data-view-link="today" aria-label="食刻首页">
+        <span class="brand-mark">
+          <svg viewBox="0 0 40 40" aria-hidden="true">
+            <path d="M8 20c0-7 5-12 12-12s12 5 12 12-5 12-12 12S8 27 8 20Z"/>
+            <path d="M20 12c-1 5-4 8-9 9 5 1 8 4 9 9 1-5 4-8 9-9-5-1-8-4-9-9Z"/>
+          </svg>
+        </span>
+        <span>
+          <strong>食刻</strong>
+          <small>MEAL IN FOCUS</small>
+        </span>
+      </a>
+
+      <nav class="side-nav" aria-label="主导航">
+        <button class="nav-item is-active" data-view="today">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-8.5Z"/></svg>
+          </span>
+          <span>今日饮食</span>
+        </button>
+        <button class="nav-item" data-view="trends">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5m0 14h16M7 15l4-5 3 3 5-7"/></svg>
+          </span>
+          <span>趋势分析</span>
+        </button>
+        <button class="nav-item" data-view="plan">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10a2 2 0 0 1 2 2v14H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Zm0 0v16M10 9h6m-6 4h6m-6 4h4"/></svg>
+          </span>
+          <span>我的计划</span>
+        </button>
+        <button class="nav-item" data-view="settings">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="m19.4 15 .1.1a2 2 0 1 1-2.8 2.8l-.1-.1a2 2 0 0 0-3.4 1.4v.3a2 2 0 1 1-4 0v-.2a2 2 0 0 0-3.5-1.4l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A2 2 0 0 0 1.5 12v-.1a2 2 0 1 1 4 0v.1a2 2 0 0 0 3.4 1.4l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A2 2 0 0 0 13 19.7v.2a2 2 0 1 1 4 0v-.2a2 2 0 0 0 3.4-1.4l.1-.1a2 2 0 1 1 2.8-2.8l-.1.1a2 2 0 0 0 1.4 3.4h.2a2 2 0 1 1 0 4h-.2a2 2 0 0 0-1.4 3.4Z" transform="scale(.75) translate(4 4)"/></svg>
+          </span>
+          <span>参数设置</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-plan">
+        <span class="eyebrow eyebrow-light">今日目标</span>
+        <strong id="side-kcal">--</strong>
+        <span>千卡 · 按计划计算</span>
+        <div class="mini-progress"><i id="side-progress-bar"></i></div>
+        <small id="side-progress-text">还没有记录</small>
+      </div>
+
+      <button class="sidebar-profile" id="sidebar-profile" type="button">
+        <span class="avatar" id="profile-avatar">食</span>
+        <span>
+          <strong id="profile-name">设置我的计划</strong>
+          <small id="profile-subtitle">体重与训练频率</small>
+        </span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+      </button>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <button class="mobile-brand" data-view-link="today" aria-label="返回首页">
+          <span class="brand-mark">
+            <svg viewBox="0 0 40 40" aria-hidden="true">
+              <path d="M8 20c0-7 5-12 12-12s12 5 12 12-5 12-12 12S8 27 8 20Z"/>
+              <path d="M20 12c-1 5-4 8-9 9 5 1 8 4 9 9 1-5 4-8 9-9-5-1-8-4-9-9Z"/>
+            </svg>
+          </span>
+          <strong>食刻</strong>
+        </button>
+        <div class="date-switcher">
+          <button class="icon-button" id="prev-day" type="button" aria-label="前一天">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>
+          </button>
+          <button class="date-button" id="date-button" type="button" aria-label="选择日期">
+            <span id="date-weekday">周四</span>
+            <strong id="date-label">10月22日</strong>
+          </button>
+          <button class="icon-button" id="next-day" type="button" aria-label="后一天">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+          </button>
+          <input class="date-input" id="date-input" type="date" aria-label="记录日期">
+        </div>
+        <div class="topbar-actions">
+          <button class="ghost-button today-button" id="go-today" type="button">回到今天</button>
+          <button class="icon-button notification-button" id="insight-shortcut" type="button" aria-label="查看今日分析">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6v3.5l-2 4h16l-2-4V9a6 6 0 0 0-6-6Zm-2.5 17h5"/></svg>
+            <i></i>
+          </button>
+        </div>
+        <button class="mobile-profile-button" id="mobile-profile" type="button" aria-label="打开设置">
+          <span class="avatar" id="mobile-profile-avatar">食</span>
+        </button>
+      </header>
+
+      <section class="view is-active" id="view-today">
+        <div class="welcome-row">
+          <div>
+            <span class="eyebrow" id="today-eyebrow">今天，认真吃饭</span>
+            <h1 id="welcome-title">记录，是身体变化的第一笔。</h1>
+            <p id="welcome-copy">把每一餐记下来，剩下的交给趋势，而不是某一天的体重秤。</p>
+          </div>
+          <button class="primary-button add-meal-top" type="button" data-open-meal="lunch">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            记录一餐
+          </button>
+        </div>
+
+        <div class="mobile-quick-actions" aria-label="快捷记录">
+          <button class="quick-action quick-camera" id="quick-photo" type="button">
+            <span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3l1.5-2h7L17 7h3v12H4V7Z"/><circle cx="12" cy="13" r="3.5"/></svg>
+            </span>
+            <strong>拍餐盘</strong>
+            <small>AI 估营养</small>
+          </button>
+          <button class="quick-action" id="quick-text" type="button">
+            <span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v11H9l-4 4V5Z"/><path d="M8 9h8M8 12h5"/></svg>
+            </span>
+            <strong>文字记餐</strong>
+            <small>输入食物份量</small>
+          </button>
+          <button class="quick-action" id="quick-weight" type="button">
+            <span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10a2 2 0 0 1 2 2v14H5V6a2 2 0 0 1 2-2Z"/><path d="M9 9h6M12 9v5m-1.5 0h3"/></svg>
+            </span>
+            <strong>记体重</strong>
+            <small>看周趋势</small>
+          </button>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="card calorie-card">
+            <div class="card-heading">
+              <div>
+                <span class="eyebrow">今日热量</span>
+                <h2>还能吃多少</h2>
+              </div>
+              <span class="status-pill" id="calorie-status">等待记录</span>
+            </div>
+
+            <div class="calorie-visual">
+              <div class="calorie-ring" id="calorie-ring">
+                <div class="calorie-ring-inner">
+                  <strong id="remaining-kcal">--</strong>
+                  <span>剩余千卡</span>
+                </div>
+              </div>
+              <div class="calorie-side">
+                <div>
+                  <span>已摄入</span>
+                  <strong id="consumed-kcal">0 <small>kcal</small></strong>
+                </div>
+                <div>
+                  <span>计划目标</span>
+                  <strong id="target-kcal">-- <small>kcal</small></strong>
+                </div>
+                <p id="calorie-message">先从第一餐开始记录。</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="card macro-card macro-carb">
+            <div class="macro-icon">C</div>
+            <div class="macro-title">
+              <span>碳水化合物</span>
+              <strong><b id="carb-consumed">0</b> / <span id="carb-target">--</span> g</strong>
+            </div>
+            <div class="macro-bar"><i id="carb-bar"></i></div>
+            <p id="carb-note">为主食、水果和训练供能</p>
+          </article>
+
+          <article class="card macro-card macro-protein">
+            <div class="macro-icon">P</div>
+            <div class="macro-title">
+              <span>蛋白质</span>
+              <strong><b id="protein-consumed">0</b> / <span id="protein-target">--</span> g</strong>
+            </div>
+            <div class="macro-bar"><i id="protein-bar"></i></div>
+            <p id="protein-note">优先保证，每餐分配更均匀</p>
+          </article>
+
+          <article class="card macro-card macro-fat">
+            <div class="macro-icon">F</div>
+            <div class="macro-title">
+              <span>脂肪</span>
+              <strong><b id="fat-consumed">0</b> / <span id="fat-target">--</span> g</strong>
+            </div>
+            <div class="macro-bar"><i id="fat-bar"></i></div>
+            <p id="fat-note">别把烹饪油和坚果漏掉</p>
+          </article>
+        </div>
+
+        <div class="content-grid">
+          <article class="card meals-card">
+            <div class="card-heading">
+              <div>
+                <span class="eyebrow">MEALS</span>
+                <h2>今天吃了什么</h2>
+              </div>
+              <button class="text-button" type="button" data-open-meal="snack">+ 加餐</button>
+            </div>
+            <div id="meal-list" class="meal-list"></div>
+          </article>
+
+          <div class="right-stack">
+            <article class="card weight-card">
+              <div class="card-heading compact">
+                <div>
+                  <span class="eyebrow">WEIGHT TREND</span>
+                  <h2>体重趋势</h2>
+                </div>
+                <button class="round-add" id="add-weight" type="button" aria-label="记录体重">+</button>
+              </div>
+              <div class="weight-now">
+                <strong id="current-weight">--</strong>
+                <span>kg</span>
+                <em id="weight-change">暂无变化</em>
+              </div>
+              <div class="sparkline" id="weight-sparkline" aria-label="最近体重变化"></div>
+              <div class="weight-meta">
+                <span>起始 <b id="start-weight">--</b></span>
+                <span>目标 <b id="goal-weight">--</b></span>
+              </div>
+            </article>
+
+            <article class="card coach-card">
+              <div class="coach-mark">AI</div>
+              <div>
+                <span class="eyebrow">今日教练笔记</span>
+                <h2 id="coach-title">先吃够蛋白质</h2>
+                <p id="coach-copy">没有记录时，我不做过度判断。先从下一餐开始。</p>
+              </div>
+              <button class="coach-link" type="button" data-view-link="trends">查看本周分析 <span>→</span></button>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-trends">
+        <div class="welcome-row">
+          <div>
+            <span class="eyebrow">WEEKLY REVIEW</span>
+            <h1>看趋势，不被一天的数字绑架。</h1>
+            <p>同一天的误差不重要，连续两周的方向才决定下一步。</p>
+          </div>
+          <button class="secondary-button" id="add-weight-trend" type="button">记录体重</button>
+        </div>
+
+        <div class="trend-stats">
+          <article class="stat-card">
+            <span>最近 7 天记录</span>
+            <strong id="trend-logged-days">0 <small>天</small></strong>
+            <em id="trend-logged-note">建议每周至少记录 5 天</em>
+          </article>
+          <article class="stat-card">
+            <span>平均蛋白质达成</span>
+            <strong id="trend-protein-rate">--</strong>
+            <em>按有饮食记录的日期计算</em>
+          </article>
+          <article class="stat-card">
+            <span>体重周变化</span>
+            <strong id="trend-weight-loss">--</strong>
+            <em id="trend-weight-note">至少需要两次体重记录</em>
+          </article>
+          <article class="stat-card accent-stat">
+            <span>执行状态</span>
+            <strong id="trend-score">--</strong>
+            <em id="trend-score-note">数据越完整，建议越准确</em>
+          </article>
+        </div>
+
+        <div class="chart-grid">
+          <article class="card chart-card">
+            <div class="card-heading">
+              <div>
+                <span class="eyebrow">CALORIES</span>
+                <h2>近 7 天热量</h2>
+              </div>
+              <span class="legend"><i></i> 计划目标</span>
+            </div>
+            <div class="bar-chart" id="calorie-chart"></div>
+          </article>
+
+          <article class="card chart-card">
+            <div class="card-heading">
+              <div>
+                <span class="eyebrow">BODY DATA</span>
+                <h2>体重与目标</h2>
+              </div>
+              <button class="round-add" id="add-weight-chart" type="button" aria-label="记录体重">+</button>
+            </div>
+            <div class="line-chart" id="weight-chart"></div>
+          </article>
+        </div>
+
+        <div class="analysis-grid">
+          <article class="card analysis-card">
+            <div class="card-heading">
+              <div>
+                <span class="eyebrow">WEEKLY COACH</span>
+                <h2>本周该调整什么</h2>
+              </div>
+            </div>
+            <div id="weekly-insights" class="insight-list"></div>
+          </article>
+          <article class="card adjustment-card">
+            <span class="eyebrow">下一步</span>
+            <h2>先执行，再迭代</h2>
+            <p>建议每周固定时间、同样条件下称重 3–7 次，用周平均值判断趋势。单日涨落通常来自水分、盐分和碳水储存。</p>
+            <ul>
+              <li>平均每周下降 0.3%–1%：保持。</li>
+              <li>连续两周几乎不变：碳水先减 0.2 g/kg/天。</li>
+              <li>掉得过快或训练明显乏力：碳水加 0.2 g/kg/天。</li>
+            </ul>
+            <button class="primary-button wide" id="apply-adjustment" type="button">查看我的推荐调整</button>
+          </article>
+        </div>
+      </section>
+
+      <section class="view" id="view-plan">
+        <div class="plan-hero">
+          <div class="plan-hero-copy">
+            <span class="eyebrow eyebrow-light">FROM THE VIDEO</span>
+            <h1>一份能长期执行的<br>减脂饮食框架</h1>
+            <p>按体重计算三大营养素，再根据每周训练次数选档。不是少吃，而是吃对、吃够、持续调整。</p>
+            <div class="plan-rule-chips">
+              <span>按 kg 计算</span>
+              <span>碳蛋脂</span>
+              <span>周复盘</span>
+            </div>
+          </div>
+          <div class="plan-demo">
+            <span>85kg · 每周 2–3 次训练</span>
+            <div><strong>187</strong><small>碳水 g</small></div>
+            <div><strong>120</strong><small>蛋白 g</small></div>
+            <div><strong>68</strong><small>脂肪 g</small></div>
+            <em>约 1,836 kcal</em>
+          </div>
+        </div>
+
+        <div class="plan-layout">
+          <article class="card target-table-card">
+            <div class="card-heading">
+              <div>
+                <span class="eyebrow">TARGET MATRIX</span>
+                <h2>每周训练频率与营养目标</h2>
+              </div>
+              <span class="unit-label">g / kg 体重</span>
+            </div>
+            <div class="table-wrap">
+              <table class="target-table">
+                <thead>
+                  <tr><th>训练频率</th><th>碳水</th><th>蛋白质</th><th>脂肪</th><th></th></tr>
+                </thead>
+                <tbody>
+                  <tr data-sessions="3"><td>2–3 次 / 周</td><td>2.2</td><td>1.4</td><td>0.8</td><td><span>低活动</span></td></tr>
+                  <tr data-sessions="5"><td>4–5 次 / 周</td><td>2.5</td><td>1.6</td><td>0.9</td><td><span>规律训练</span></td></tr>
+                  <tr data-sessions="7"><td>6–7 次 / 周</td><td>3.0</td><td>1.7</td><td>1.0</td><td><span>高频训练</span></td></tr>
+                  <tr data-sessions="9"><td>8–9 次 / 周</td><td>3.5</td><td>1.8</td><td>1.0</td><td><span>高训练量</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="table-footnote">视频中的计算方式是按每公斤体重给出克数，再乘当前体重。0–1 次训练也建议从最低档起步；训练量高时，碳水相应提高。</p>
+          </article>
+
+          <article class="card example-day-card">
+            <div class="card-heading">
+              <div>
+                <span class="eyebrow">EXAMPLE DAY</span>
+                <h2>视频里的 85kg 示例餐</h2>
+              </div>
+            </div>
+            <div class="example-meals">
+              <div>
+                <span>早餐</span>
+                <p>70g 燕麦、3 个全蛋、蓝莓约 100g</p>
+              </div>
+              <div>
+                <span>午餐</span>
+                <p>93g 米、180g 肉、25g 油、蔬菜</p>
+              </div>
+              <div>
+                <span>晚餐</span>
+                <p>300g 红薯、180g 牛肉、25g 油、蔬菜 200–300g</p>
+              </div>
+              <div>
+                <span>加餐</span>
+                <p>坚果 6–8g，用来补齐脂肪目标</p>
+              </div>
+            </div>
+            <p class="table-footnote">示例用于理解换算结构，不等同于每个人都必须吃同样的食物。重量与成品可替换，营养素总量才是核心。</p>
+          </article>
+        </div>
+
+        <div class="plan-principles">
+          <article>
+            <span>01</span>
+            <h3>先算总量</h3>
+            <p>用当前体重 × 所选训练档位，得到每天的碳蛋脂目标。</p>
+          </article>
+          <article>
+            <span>02</span>
+            <h3>再看餐次</h3>
+            <p>把总量分进三餐，优先保证每餐有蛋白质和蔬菜。</p>
+          </article>
+          <article>
+            <span>03</span>
+            <h3>最后调碳水</h3>
+            <p>用体重周均值和训练状态判断，先微调碳水，蛋白尽量稳定。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="view" id="view-settings">
+        <div class="welcome-row">
+          <div>
+            <span class="eyebrow">MY SETTINGS</span>
+            <h1>把计划调成真正适合你的样子。</h1>
+            <p>默认按视频规则自动计算；你也可以锁定自己的目标。</p>
+          </div>
+        </div>
+
+        <div class="settings-grid">
+          <form class="card settings-card" id="profile-form">
+            <div class="card-heading">
+              <div>
+                <span class="eyebrow">PLAN</span>
+                <h2>身体数据与训练</h2>
+              </div>
+            </div>
+            <div class="form-grid two">
+              <label class="field">
+                <span>称呼</span>
+                <input id="setting-name" name="name" type="text" maxlength="20" placeholder="你的称呼">
+              </label>
+              <label class="field">
+                <span>身高（cm，可选）</span>
+                <input id="setting-height" name="height" type="number" min="120" max="230" step="0.1" placeholder="170">
+              </label>
+              <label class="field">
+                <span>当前体重（kg）</span>
+                <input id="setting-weight" name="weight" type="number" min="35" max="250" step="0.1" required>
+              </label>
+              <label class="field">
+                <span>目标体重（kg）</span>
+                <input id="setting-goal-weight" name="goalWeight" type="number" min="35" max="250" step="0.1" required>
+              </label>
+            </div>
+            <label class="field range-field">
+              <span>每周训练次数 <b id="sessions-value">4 次</b></span>
+              <input id="setting-sessions" name="sessions" type="range" min="0" max="9" step="1">
+              <small>按视频档位自动匹配碳水、蛋白质和脂肪。</small>
+            </label>
+
+            <div class="target-preview" id="settings-target-preview">
+              <div><span>碳水</span><strong id="preview-carb">--</strong></div>
+              <div><span>蛋白质</span><strong id="preview-protein">--</strong></div>
+              <div><span>脂肪</span><strong id="preview-fat">--</strong></div>
+              <div><span>热量</span><strong id="preview-kcal">--</strong></div>
+            </div>
+
+            <label class="switch-row">
+              <span>
+                <strong>手动目标</strong>
+                <small>关闭时跟随体重和训练频率自动重算</small>
+              </span>
+              <input type="checkbox" id="manual-target-toggle">
+              <i></i>
+            </label>
+
+            <div class="form-grid three manual-targets" id="manual-target-fields">
+              <label class="field">
+                <span>碳水（g）</span>
+                <input id="manual-carb" type="number" min="0" step="1">
+              </label>
+              <label class="field">
+                <span>蛋白质（g）</span>
+                <input id="manual-protein" type="number" min="0" step="1">
+              </label>
+              <label class="field">
+                <span>脂肪（g）</span>
+                <input id="manual-fat" type="number" min="0" step="1">
+              </label>
+            </div>
+            <button class="primary-button" type="submit">保存我的计划</button>
+          </form>
+
+          <form class="card settings-card ai-card" id="ai-form">
+            <div class="card-heading">
+              <div>
+                <span class="eyebrow">PHOTO AI</span>
+                <h2>照片营养估算</h2>
+              </div>
+              <span class="optional-pill">可选</span>
+            </div>
+            <p class="settings-intro">配置一个 OpenAI 兼容的视觉模型接口后，上传餐盘照片即可估算食物和份量。文字记餐不依赖此功能。</p>
+            <label class="field">
+              <span>页面调用地址（推荐保持代理）</span>
+              <input id="setting-api-endpoint" type="text" placeholder="/api/analyze">
+            </label>
+            <label class="field" style="margin-top:9px">
+              <span>模型服务地址（OpenAI 兼容接口）</span>
+              <input id="setting-api-upstream" type="url" placeholder="https://api.openai.com/v1/chat/completions">
+            </label>
+            <div class="form-grid two">
+              <label class="field">
+                <span>模型名称</span>
+                <input id="setting-api-model" type="text" placeholder="gpt-4.1-mini">
+              </label>
+              <label class="field">
+                <span>API Key（本地代理模式可留空）</span>
+                <input id="setting-api-key" type="password" autocomplete="off" placeholder="sk-...">
+              </label>
+            </div>
+            <label class="switch-row">
+              <span>
+                <strong>在本机记住密钥</strong>
+                <small>仅适合个人设备；公共电脑请保持关闭</small>
+              </span>
+              <input type="checkbox" id="remember-key">
+              <i></i>
+            </label>
+            <div class="security-note">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6l-7-3Zm0 6v4m0 4h.01"/></svg>
+              <p>这是个人本地网页，密钥只会从当前浏览器直接发送到你填写的接口。若将来要公开上线，请把识别请求移到自己的后端。</p>
+            </div>
+            <div class="button-row">
+              <button class="primary-button" type="submit">保存 AI 设置</button>
+              <button class="secondary-button" id="test-ai" type="button">测试连接</button>
+            </div>
+          </form>
+
+          <article class="card settings-card data-card">
+            <div class="card-heading">
+              <div>
+                <span class="eyebrow">DATA</span>
+                <h2>数据管理</h2>
+              </div>
+            </div>
+            <p class="settings-intro">记录只保存在此浏览器中。建议定期导出备份，换设备时可再导入。</p>
+            <div class="data-actions">
+              <button class="secondary-button" id="export-data" type="button">导出数据</button>
+              <label class="secondary-button file-button">导入数据<input id="import-data" type="file" accept="application/json"></label>
+              <button class="secondary-button" id="load-demo" type="button">载入示例</button>
+              <button class="danger-button" id="reset-data" type="button">清空所有记录</button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <footer class="app-footer">
+        <span>食刻 · 视频减脂计划饮食追踪</span>
+        <span>估算值仅用于日常追踪，不替代医疗或营养师建议。</span>
+      </footer>
+    </main>
+  </div>
+
+  <nav class="mobile-nav" aria-label="移动端导航">
+    <button class="is-active" data-view="today">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-8.5Z"/></svg>
+      <span>今日</span>
+    </button>
+    <button data-view="trends">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5m0 14h16M7 15l4-5 3 3 5-7"/></svg>
+      <span>趋势</span>
+    </button>
+    <button class="mobile-add" id="mobile-add" type="button" aria-label="记录一餐"><i>+</i></button>
+    <button data-view="plan">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10a2 2 0 0 1 2 2v14H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Zm0 0v16M10 9h6m-6 4h6"/></svg>
+      <span>计划</span>
+    </button>
+    <button data-view="settings">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a7 7 0 0 0-1.7-1L14.5 3h-5l-.3 3.1a7 7 0 0 0-1.7 1L5.1 6.1 3.1 9.5 5.1 11a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a7 7 0 0 0 1.7 1l.3 3.1h5l.3-3.1a7 7 0 0 0 1.7-1l2.4 1 2-3.4-2-1.5a7 7 0 0 0 .1-1Z"/></svg>
+      <span>设置</span>
+    </button>
+  </nav>
+
+  <button class="floating-add" id="floating-add" type="button" aria-label="记录一餐">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
+
+  <div class="modal-backdrop" id="modal-backdrop" hidden>
+    <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"></div>
+  </div>
+
+  <div class="toast-region" id="toast-region" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
