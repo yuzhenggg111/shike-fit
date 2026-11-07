@@ -9,10 +9,10 @@
   <meta name="apple-mobile-web-app-title" content="轻脂航海图">
   <meta name="description" content="基于体重的本地减脂饮食助手">
   <title>轻脂航海图 · 减脂助手</title>
-  <link rel="manifest" href="manifest.webmanifest?v=20261107-analysis">
+  <link rel="manifest" href="manifest.webmanifest?v=20261107-universal3">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=20261107-analysis">
+  <link rel="stylesheet" href="styles.css?v=20261107-universal3">
 </head>
 <body>
   <div class="ambient ambient-a"></div>
@@ -355,7 +355,7 @@
           <input id="meal-photos" type="file" accept="image/*" multiple hidden>
           <div class="dropzone-icon">◎</div>
           <strong>从相册选择，或者直接拍一张</strong>
-          <span>最多 4 张；只输入文字描述也可以进行营养分析。</span>
+          <span>可拍餐盘、包装正面、营养成分表或食堂菜品；最多 4 张。</span>
           <div class="photo-source-actions">
             <button class="button button-ghost" type="button" id="choose-meal-photos">从相册选择</button>
             <button class="button button-ghost mobile-camera" type="button" id="choose-meal-camera">直接拍照</button>
@@ -366,7 +366,8 @@
 
         <label class="field">
           <span>文字描述 <small>不上传照片也可以</small></span>
-          <textarea id="meal-description" rows="3" placeholder="尽量写清食物和份量，例如：150 g 米饭、200 g 去皮鸡腿肉、一份西兰花，炒菜用了少量油。"></textarea>
+          <textarea id="meal-description" rows="3" placeholder="可写品牌、食物名称、包装净含量和实际吃掉的份量。例如：某品牌香辣鸡腿堡 1 个，净含量 180 g，吃完了；或食堂红烧肉约 6 块，配 150 g 米饭。"></textarea>
+          <small>有营养成分表时优先按标签计算；没有标签时由 AI 根据食材、餐具和文字份量估算。</small>
         </label>
 
         <div class="ai-action-row">
@@ -588,6 +589,6 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="app.js?v=20261107-analysis"></script>
+  <script src="app.js?v=20261107-universal3"></script>
 </body>
 </html>
