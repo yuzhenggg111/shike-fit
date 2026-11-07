@@ -1879,7 +1879,7 @@ ${targetText}
     renderAll();
     await checkAiHealth();
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("sw.js").catch(() => {});
+      navigator.serviceWorker.register("sw.js?v=20261107-deepseek").catch(() => {});
     }
   }
 
