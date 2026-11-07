@@ -1102,16 +1102,24 @@
     const targetText = target
       ? `当前每日目标：蛋白质 ${target.protein} g，碳水 ${target.carbs} g，脂肪 ${target.fat} g，热量约 ${target.calories} kcal。`
       : "当前没有额外每日目标。";
-    const prompt = `你是一名严谨、务实的中文营养记录助手。请识别餐食照片并按食物拆分，估算实际摄入份量。
-只分析照片中可见或用户确认的食物，不要凭空添加。看不清重量时给出合理中位估算，并在 assumptions 写明。
-调味油、酱汁、坚果和饮品等隐形热量也要纳入。营养单位均为本餐实际摄入克数。
-多张照片先去重同一盘食物。coach_feedback 用一两句话指出最值得注意的一点，不做疾病诊断。
+    const systemPrompt = `你是中国食物营养数据库和餐饮份量估算专家。你的任务是根据餐食照片、用户文字，或两者结合，估算本餐每一种食物的实际食用重量和三大营养素。
 
-本餐类型：${mealTypeName}
+分析规则：
+1. 先识别所有可见或文字明确提到的食物、饮品、酱汁和烹调油，再逐一估算实际摄入量。
+2. 用户提到连锁餐厅和套餐时（例如“老乡鸡某套餐”“麦当劳某套餐”），先识别套餐通常包含的菜品，再按该品牌常见标准份量拆分。无法确认具体套餐时，给出最接近的常见组合，并在 assumptions 中明确说明。
+3. 只有文字、没有照片时也必须给出估算，不得因为缺少图片而拒绝。文字不足时采用中国常见餐厅或家常菜的中位份量。
+4. 分别估算主食、肉类或豆制品、蔬菜、酱汁、烹调油。油炸、红烧、酱汁、汤底和坚果的隐藏热量必须计入。
+5. 份量尽量写成“约 150 g”“约 1 小碗”等；所有营养素都是本餐实际摄入总量，不是每 100 g 数值。
+6. protein、carbs、fat 的单位是克，calories 的单位是 kcal。calories 应接近 protein×4 + carbs×4 + fat×9。
+7. 多张照片先合并去重，不要把同一盘菜重复计算。
+8. confidence 为 0 到 1：有清晰照片和明确重量时较高，只有品牌套餐文字时较低。
+9. assumptions 写明品牌、菜品和份量假设；coach_feedback 只给一句实际饮食建议，不做疾病诊断。
+10. 精确数据无法确认时仍要给出最合理的估算结果，而不是返回解释性文字。`;
+    const prompt = `本餐类型：${mealTypeName}
 用户描述：${mealPayload.description || "无"}
 ${targetText}
 
-只返回以下 JSON，不要 Markdown：
+只返回一个有效 JSON 对象，不要 Markdown、代码围栏或额外解释。JSON 格式必须是：
 {
   "meal_name": "餐食名称",
   "items": [
@@ -1134,34 +1142,76 @@ ${targetText}
       image_url: { url: image }
     }));
     content.push({ type: "text", text: prompt });
-    const response = await fetch(`${baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: "user", content }],
-        temperature: 0.2,
-        max_tokens: 1800
-      })
-    });
+    const requestBody = {
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content }
+      ],
+      temperature: 0.1,
+      max_tokens: 3000,
+      stream: false
+    };
+    if (!isDashScope) {
+      requestBody.thinking = { type: "disabled" };
+      requestBody.response_format = { type: "json_object" };
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 90000);
+    let response;
+    try {
+      response = await fetch(`${baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
+      });
+    }
+    catch (error) {
+      if (error.name === "AbortError") throw new Error(`${providerName}分析超时，请减少图片数量后重试。`);
+      throw error;
+    }
+    finally {
+      clearTimeout(timeout);
+    }
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
       throw new Error(payload.error?.message || payload.message || `${providerName}请求失败（HTTP ${response.status}）`);
     }
-    const contentValue = payload.choices?.[0]?.message?.content;
-    const text = (Array.isArray(contentValue)
-      ? contentValue.map(item => item.text || "").join("\n")
-      : String(contentValue || "")
-    ).trim().replace(/^```(?:json)?\s*([\s\S]*?)\s*```$/, "$1");
-    if (!text) throw new Error(`${providerName}没有返回可解析的识别结果。`);
-    try {
-      return JSON.parse(text);
-    } catch {
-      throw new Error(`${providerName}返回的结果不是有效 JSON，请重试。`);
+    const message = payload.choices?.[0]?.message || {};
+    const contentValue = message.content || message.reasoning_content || "";
+    const text = Array.isArray(contentValue)
+      ? contentValue.map(item => item.text || item.content || "").join("\n")
+      : String(contentValue || "");
+    if (!text.trim()) {
+      const finishReason = payload.choices?.[0]?.finish_reason;
+      throw new Error(`${providerName}没有返回识别内容${finishReason ? `（${finishReason}）` : ""}，请重新分析。`);
     }
+    return extractJsonFromModel(text, providerName);
+  }
+
+  function extractJsonFromModel(rawText, providerName) {
+    let text = String(rawText || "").trim()
+      .replace(/^```(?:json)?\s*/i, "")
+      .replace(/\s*```$/, "")
+      .trim();
+    const attempts = [text];
+    const firstBrace = text.indexOf("{");
+    const lastBrace = text.lastIndexOf("}");
+    if (firstBrace >= 0 && lastBrace > firstBrace) {
+      attempts.push(text.slice(firstBrace, lastBrace + 1));
+    }
+    for (const candidate of attempts) {
+      try {
+        return JSON.parse(candidate);
+      }
+      catch {}
+    }
+    throw new Error(`${providerName}返回了结果，但格式无法解析，请重新分析。`);
   }
 
   function normalizeAnalysis(payload) {
@@ -1879,7 +1929,7 @@ ${targetText}
     renderAll();
     await checkAiHealth();
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("sw.js?v=20261107-gallery").catch(() => {});
+      navigator.serviceWorker.register("sw.js?v=20261107-analysis").catch(() => {});
     }
   }
 
