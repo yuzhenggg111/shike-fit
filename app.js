@@ -1,536 +1,67 @@
 (() => {
   "use strict";
 
-  const STORAGE_KEY = "shike-fit-state-v1";
-  const KEY_SESSION = "shike-fit-api-key-session";
-  const KEY_LOCAL = "shike-fit-api-key-local";
-  const MEAL_TYPES = [
-    { id: "breakfast", label: "早餐", short: "早" },
-    { id: "lunch", label: "午餐", short: "午" },
-    { id: "dinner", label: "晚餐", short: "晚" },
-    { id: "snack", label: "加餐", short: "加" }
-  ];
-
-  const PLAN_BANDS = [
-    { max: 3, label: "2–3 次 / 周", carbs: 2.2, protein: 1.4, fat: 0.8 },
-    { max: 5, label: "4–5 次 / 周", carbs: 2.5, protein: 1.6, fat: 0.9 },
-    { max: 7, label: "6–7 次 / 周", carbs: 3, protein: 1.7, fat: 1 },
-    { max: 99, label: "8–9 次 / 周", carbs: 3.5, protein: 1.8, fat: 1 }
-  ];
-
-  const FOODS = [
-    {
-      name: "米饭",
-      aliases: ["白米饭", "熟米饭", "米饭"],
-      per100: { carbs: 28, protein: 2.6, fat: 0.3, kcal: 130 },
-      serving: 150,
-      note: "默认按熟重"
-    },
-    {
-      name: "生米",
-      aliases: ["生米", "大米"],
-      per100: { carbs: 77.9, protein: 7.1, fat: 0.7, kcal: 346 },
-      serving: 80,
-      note: "生重"
-    },
-    {
-      name: "燕麦",
-      aliases: ["燕麦片", "即食燕麦", "燕麦", "麦片"],
-      per100: { carbs: 66.3, protein: 14, fat: 7.5, kcal: 380 },
-      serving: 40,
-      note: "默认按干重"
-    },
-    {
-      name: "全麦面包",
-      aliases: ["全麦面包", "全麦吐司", "吐司", "面包"],
-      per100: { carbs: 43, protein: 13, fat: 4.2, kcal: 250 },
-      serving: 35,
-      unitGrams: { 片: 35 },
-      note: "一片约 35g"
-    },
-    {
-      name: "馒头",
-      aliases: ["白馒头", "馒头"],
-      per100: { carbs: 47, protein: 7, fat: 1.1, kcal: 230 },
-      serving: 80
-    },
-    {
-      name: "熟面条",
-      aliases: ["意大利面", "意面", "面条", "挂面"],
-      per100: { carbs: 25, protein: 4.5, fat: 1.1, kcal: 130 },
-      serving: 200,
-      unitGrams: { 碗: 200 },
-      note: "默认按熟重"
-    },
-    {
-      name: "米粉",
-      aliases: ["河粉", "米粉", "米线"],
-      per100: { carbs: 25, protein: 2, fat: 0.2, kcal: 110 },
-      serving: 200,
-      unitGrams: { 碗: 200 },
-      note: "默认按熟重"
-    },
-    {
-      name: "白粥",
-      aliases: ["稀饭", "白粥", "米粥"],
-      per100: { carbs: 9.3, protein: 1.1, fat: 0.3, kcal: 46 },
-      serving: 300,
-      unitGrams: { 碗: 300 }
-    },
-    {
-      name: "红薯",
-      aliases: ["地瓜", "红薯"],
-      per100: { carbs: 20.1, protein: 1.6, fat: 0.1, kcal: 86 },
-      serving: 200
-    },
-    {
-      name: "紫薯",
-      aliases: ["紫薯"],
-      per100: { carbs: 24, protein: 1.6, fat: 0.2, kcal: 106 },
-      serving: 200
-    },
-    {
-      name: "土豆",
-      aliases: ["马铃薯", "土豆"],
-      per100: { carbs: 17.8, protein: 2, fat: 0.1, kcal: 77 },
-      serving: 200
-    },
-    {
-      name: "贝贝南瓜",
-      aliases: ["贝贝南瓜", "南瓜"],
-      per100: { carbs: 6.5, protein: 1, fat: 0.1, kcal: 26 },
-      serving: 200
-    },
-    {
-      name: "玉米",
-      aliases: ["甜玉米", "玉米"],
-      per100: { carbs: 19, protein: 3.4, fat: 1.5, kcal: 96 },
-      serving: 180,
-      unitGrams: { 根: 180 }
-    },
-    {
-      name: "鸡胸肉",
-      aliases: ["鸡胸肉", "鸡胸", "鸡大胸"],
-      per100: { carbs: 0, protein: 23.3, fat: 1.9, kcal: 118 },
-      serving: 150,
-      note: "按生重估算"
-    },
-    {
-      name: "鸡腿肉",
-      aliases: ["去皮鸡腿", "鸡腿肉", "鸡腿"],
-      per100: { carbs: 0, protein: 20, fat: 8, kcal: 150 },
-      serving: 150,
-      unitGrams: { 个: 120 }
-    },
-    {
-      name: "牛肉",
-      aliases: ["瘦牛肉", "牛里脊", "牛肉"],
-      per100: { carbs: 0, protein: 20.2, fat: 6, kcal: 140 },
-      serving: 150
-    },
-    {
-      name: "猪里脊",
-      aliases: ["猪里脊", "里脊肉", "瘦猪肉", "猪肉"],
-      per100: { carbs: 0, protein: 20.9, fat: 6.3, kcal: 143 },
-      serving: 150
-    },
-    {
-      name: "三文鱼",
-      aliases: ["三文鱼", "鲑鱼"],
-      per100: { carbs: 0, protein: 20.4, fat: 13.4, kcal: 208 },
-      serving: 150
-    },
-    {
-      name: "虾",
-      aliases: ["虾仁", "大虾", "鲜虾", "虾"],
-      per100: { carbs: 0.2, protein: 18.6, fat: 0.8, kcal: 85 },
-      serving: 120,
-      unitGrams: { 只: 12 }
-    },
-    {
-      name: "鸡蛋",
-      aliases: ["水煮蛋", "煎蛋", "全蛋", "鸡蛋", "蛋"],
-      per100: { carbs: 1.1, protein: 12.6, fat: 10.6, kcal: 144 },
-      serving: 50,
-      unitGrams: { 个: 50, 只: 50, 枚: 50 }
-    },
-    {
-      name: "鸡蛋白",
-      aliases: ["鸡蛋白", "蛋白液", "蛋白"],
-      per100: { carbs: 0.7, protein: 11, fat: 0.2, kcal: 52 },
-      serving: 35,
-      unitGrams: { 个: 35, 只: 35 }
-    },
-    {
-      name: "豆腐",
-      aliases: ["老豆腐", "嫩豆腐", "北豆腐", "南豆腐", "豆腐"],
-      per100: { carbs: 2, protein: 8.1, fat: 4.2, kcal: 82 },
-      serving: 150
-    },
-    {
-      name: "牛奶",
-      aliases: ["纯牛奶", "脱脂牛奶", "低脂牛奶", "牛奶", "奶"],
-      per100: { carbs: 4.8, protein: 3.2, fat: 3.6, kcal: 64 },
-      serving: 250,
-      density: 1,
-      unitGrams: { 杯: 250, 盒: 250 }
-    },
-    {
-      name: "无糖希腊酸奶",
-      aliases: ["无糖希腊酸奶", "希腊酸奶", "无糖酸奶", "酸奶"],
-      per100: { carbs: 4.7, protein: 10, fat: 0.4, kcal: 63 },
-      serving: 150,
-      unitGrams: { 杯: 150, 盒: 150 }
-    },
-    {
-      name: "乳清蛋白粉",
-      aliases: ["乳清蛋白粉", "蛋白粉"],
-      per100: { carbs: 7, protein: 78, fat: 5, kcal: 390 },
-      serving: 30,
-      unitGrams: { 勺: 30 }
-    },
-    {
-      name: "西兰花",
-      aliases: ["西蓝花", "西兰花"],
-      per100: { carbs: 6.6, protein: 2.8, fat: 0.4, kcal: 34 },
-      serving: 200
-    },
-    {
-      name: "菠菜",
-      aliases: ["菠菜"],
-      per100: { carbs: 3.6, protein: 2.9, fat: 0.4, kcal: 23 },
-      serving: 200
-    },
-    {
-      name: "生菜",
-      aliases: ["生菜"],
-      per100: { carbs: 2.9, protein: 1.4, fat: 0.2, kcal: 15 },
-      serving: 200
-    },
-    {
-      name: "黄瓜",
-      aliases: ["青瓜", "黄瓜"],
-      per100: { carbs: 3.6, protein: 0.7, fat: 0.1, kcal: 16 },
-      serving: 200
-    },
-    {
-      name: "番茄",
-      aliases: ["西红柿", "番茄"],
-      per100: { carbs: 3.9, protein: 0.9, fat: 0.2, kcal: 18 },
-      serving: 180,
-      unitGrams: { 个: 180 }
-    },
-    {
-      name: "混合蔬菜",
-      aliases: ["绿叶菜", "混合蔬菜", "蔬菜", "青菜"],
-      per100: { carbs: 5, protein: 1.8, fat: 0.3, kcal: 35 },
-      serving: 200
-    },
-    {
-      name: "牛油果",
-      aliases: ["鳄梨", "牛油果"],
-      per100: { carbs: 8.5, protein: 2, fat: 15.3, kcal: 160 },
-      serving: 100,
-      unitGrams: { 个: 150 }
-    },
-    {
-      name: "香蕉",
-      aliases: ["香蕉"],
-      per100: { carbs: 22.8, protein: 1.1, fat: 0.3, kcal: 93 },
-      serving: 120,
-      unitGrams: { 根: 120, 个: 120 }
-    },
-    {
-      name: "苹果",
-      aliases: ["苹果"],
-      per100: { carbs: 13.8, protein: 0.3, fat: 0.2, kcal: 53 },
-      serving: 180,
-      unitGrams: { 个: 180 }
-    },
-    {
-      name: "蓝莓",
-      aliases: ["蓝莓"],
-      per100: { carbs: 14.5, protein: 0.7, fat: 0.3, kcal: 57 },
-      serving: 100,
-      unitGrams: { 盒: 125 }
-    },
-    {
-      name: "橙子",
-      aliases: ["脐橙", "橙子"],
-      per100: { carbs: 11.8, protein: 0.9, fat: 0.1, kcal: 47 },
-      serving: 180,
-      unitGrams: { 个: 180 }
-    },
-    {
-      name: "橄榄油",
-      aliases: ["初榨橄榄油", "橄榄油"],
-      per100: { carbs: 0, protein: 0, fat: 100, kcal: 884 },
-      serving: 10,
-      density: 0.91,
-      unitGrams: { 勺: 10 },
-      note: "烹饪油最容易漏记"
-    },
-    {
-      name: "花生油",
-      aliases: ["菜籽油", "食用油", "花生油"],
-      per100: { carbs: 0, protein: 0, fat: 100, kcal: 884 },
-      serving: 10,
-      density: 0.91,
-      unitGrams: { 勺: 10 }
-    },
-    {
-      name: "混合坚果",
-      aliases: ["混合坚果", "坚果"],
-      per100: { carbs: 20, protein: 20, fat: 52, kcal: 600 },
-      serving: 10,
-      unitGrams: { 把: 15, 包: 25 }
-    },
-    {
-      name: "杏仁",
-      aliases: ["巴旦木", "杏仁"],
-      per100: { carbs: 22, protein: 21, fat: 50, kcal: 600 },
-      serving: 12,
-      unitGrams: { 颗: 1.2 }
-    },
-    {
-      name: "花生",
-      aliases: ["花生米", "花生"],
-      per100: { carbs: 16, protein: 26, fat: 49, kcal: 567 },
-      serving: 15,
-      unitGrams: { 颗: 0.8 }
-    },
-    {
-      name: "鹰嘴豆",
-      aliases: ["鹰嘴豆"],
-      per100: { carbs: 27, protein: 9, fat: 2.6, kcal: 164 },
-      serving: 150
-    },
-    {
-      name: "饺子",
-      aliases: ["水饺", "饺子"],
-      per100: { carbs: 28, protein: 8, fat: 7, kcal: 200 },
-      serving: 20,
-      unitGrams: { 个: 20, 只: 20 }
-    },
-    {
-      name: "包子",
-      aliases: ["肉包", "菜包", "包子"],
-      per100: { carbs: 45, protein: 8, fat: 5, kcal: 230 },
-      serving: 90,
-      unitGrams: { 个: 90 }
-    },
-    {
-      name: "燕麦奶",
-      aliases: ["燕麦奶"],
-      per100: { carbs: 7, protein: 0.6, fat: 1.5, kcal: 45 },
-      serving: 250,
-      density: 1,
-      unitGrams: { 杯: 250, 盒: 250 }
-    },
-    {
-      name: "番茄炒蛋",
-      aliases: ["西红柿炒鸡蛋", "西红柿炒蛋", "番茄炒蛋"],
-      per100: { carbs: 4.5, protein: 7.2, fat: 8.4, kcal: 122 },
-      serving: 180,
-      unitGrams: { 份: 180 },
-      note: "已包含常见炒制油"
-    },
-    {
-      name: "青椒肉丝",
-      aliases: ["尖椒肉丝", "青椒肉丝"],
-      per100: { carbs: 5, protein: 12.5, fat: 9, kcal: 151 },
-      serving: 160,
-      unitGrams: { 份: 160 }
-    },
-    {
-      name: "鱼香肉丝",
-      aliases: ["鱼香肉丝"],
-      per100: { carbs: 11, protein: 12, fat: 9.5, kcal: 178 },
-      serving: 160,
-      unitGrams: { 份: 160 },
-      note: "含糖醋汁和烹饪油"
-    },
-    {
-      name: "宫保鸡丁",
-      aliases: ["宫爆鸡丁", "宫保鸡丁"],
-      per100: { carbs: 9, protein: 16, fat: 11, kcal: 200 },
-      serving: 160,
-      unitGrams: { 份: 160 }
-    },
-    {
-      name: "麻婆豆腐",
-      aliases: ["麻婆豆腐"],
-      per100: { carbs: 6, protein: 9, fat: 10, kcal: 150 },
-      serving: 180,
-      unitGrams: { 份: 180 },
-      note: "含红油和勾芡"
-    },
-    {
-      name: "红烧肉",
-      aliases: ["红烧五花肉", "红烧肉"],
-      per100: { carbs: 4, protein: 13, fat: 27, kcal: 311 },
-      serving: 140,
-      unitGrams: { 份: 140 }
-    },
-    {
-      name: "清炒时蔬",
-      aliases: ["清炒青菜", "炒青菜", "炒时蔬", "食堂青菜", "炒蔬菜"],
-      per100: { carbs: 5.2, protein: 1.9, fat: 5.8, kcal: 80 },
-      serving: 180,
-      unitGrams: { 份: 180 },
-      note: "按食堂常见少油炒制估算"
-    },
-    {
-      name: "土豆丝",
-      aliases: ["酸辣土豆丝", "炒土豆丝", "土豆丝"],
-      per100: { carbs: 17, protein: 2.1, fat: 7, kcal: 139 },
-      serving: 160,
-      unitGrams: { 份: 160 }
-    },
-    {
-      name: "蛋炒饭",
-      aliases: ["食堂炒饭", "蛋炒饭", "炒饭"],
-      per100: { carbs: 30, protein: 6, fat: 7, kcal: 207 },
-      serving: 300,
-      unitGrams: { 份: 300, 碗: 250 }
-    },
-    {
-      name: "西红柿蛋汤",
-      aliases: ["番茄蛋汤", "西红柿蛋汤", "西红柿鸡蛋汤"],
-      per100: { carbs: 3, protein: 2, fat: 2, kcal: 38 },
-      serving: 300,
-      unitGrams: { 碗: 300, 份: 300 }
-    },
-    {
-      name: "普通肉类",
-      aliases: ["瘦肉", "肉片", "肉"],
-      per100: { carbs: 0, protein: 18, fat: 8, kcal: 145 },
-      serving: 150,
-      note: "普通肉类通用估算"
-    }
-  ];
+  const DB_NAME = "leanflow-dashboard";
+  const DB_STORE = "app";
+  const DB_KEY = "state";
+  const DIRECT_AI_KEY = "leanflow-openai-key";
+  const DASHSCOPE_AI_KEY = "leanflow-dashscope-key";
+  const DEEPSEEK_AI_KEY = "leanflow-deepseek-key";
+  const PROXY_TOKEN_KEY = "leanflow-proxy-token";
+  const DAY_NAMES = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+  const MEAL_META = {
+    breakfast: { name: "早餐", glyph: "早", accent: "#e7c457" },
+    lunch: { name: "午餐", glyph: "午", accent: "#9fbe6f" },
+    dinner: { name: "晚餐", glyph: "晚", accent: "#d58d72" },
+    snack: { name: "加餐", glyph: "加", accent: "#7fa9b8" }
+  };
 
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
-  let memoryStorage = {};
-  let state = null;
-  let selectedDate = toDateISO(new Date());
-  let currentView = "today";
-  let draftMeal = null;
-
-  function safeStorageGet(storage, key) {
-    try {
-      return storage.getItem(key);
-    } catch {
-      return memoryStorage[key] || null;
-    }
-  }
-
-  function safeStorageSet(storage, key, value) {
-    try {
-      storage.setItem(key, value);
-    } catch {
-      memoryStorage[key] = value;
-    }
-  }
-
-  function safeStorageRemove(storage, key) {
-    try {
-      storage.removeItem(key);
-    } catch {
-      delete memoryStorage[key];
-    }
-  }
-
-  function createDefaultState() {
-    return {
-      version: 1,
-      profile: {
-        name: "",
-        height: 170,
-        weight: 70,
-        goalWeight: 62,
-        sessions: 4,
-        setupComplete: false,
-        targetMode: "auto",
-        customTargets: null
-      },
-      settings: {
-        endpoint: "/api/analyze",
-        upstream: "https://api.openai.com/v1/chat/completions",
-        model: "gpt-4.1-mini",
-        rememberKey: false
-      },
-      meals: [],
-      weights: [],
-      calibrations: []
-    };
-  }
-
-  function loadState() {
-    const raw = safeStorageGet(localStorage, STORAGE_KEY);
-    if (!raw) return createDefaultState();
-    try {
-      const parsed = JSON.parse(raw);
-      const base = createDefaultState();
-      return {
-        ...base,
-        ...parsed,
-        profile: { ...base.profile, ...(parsed.profile || {}) },
-        settings: { ...base.settings, ...(parsed.settings || {}) },
-        meals: Array.isArray(parsed.meals) ? parsed.meals : [],
-        weights: Array.isArray(parsed.weights) ? parsed.weights : [],
-        calibrations: Array.isArray(parsed.calibrations) ? parsed.calibrations : []
-      };
-    } catch {
-      return createDefaultState();
-    }
-  }
-
-  function saveState() {
-    safeStorageSet(localStorage, STORAGE_KEY, JSON.stringify(state));
-  }
-
-  function toDateISO(date) {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-  }
-
-  function parseDateISO(iso) {
-    return new Date(`${iso}T12:00:00`);
-  }
-
-  function shiftDate(iso, amount) {
-    const date = parseDateISO(iso);
-    date.setDate(date.getDate() + amount);
-    return toDateISO(date);
-  }
-
-  function clamp(num, min, max) {
-    return Math.min(max, Math.max(min, num));
-  }
-
-  function round(value, digits = 0) {
+  const num = (value, fallback = 0) => {
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+  const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+  const round = (value, digits = 0) => {
     const factor = 10 ** digits;
-    return Math.round((Number(value) + Number.EPSILON) * factor) / factor;
+    return Math.round((num(value) + Number.EPSILON) * factor) / factor;
+  };
+  const uid = () => globalThis.crypto?.randomUUID?.() ||
+    `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+
+  function localDateString(date = new Date()) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   }
 
-  function formatNumber(value, digits = 0) {
-    if (!Number.isFinite(Number(value))) return "0";
-    return Number(value).toLocaleString("zh-CN", {
-      minimumFractionDigits: digits,
-      maximumFractionDigits: digits
-    });
+  function parseLocalDate(dateString) {
+    return new Date(`${dateString}T00:00:00`);
   }
 
-  function uid() {
-    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
-    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  function addDays(dateString, amount) {
+    const date = parseLocalDate(dateString);
+    date.setDate(date.getDate() + amount);
+    return localDateString(date);
   }
 
-  function escapeHTML(value) {
+  function daysBetween(from, to) {
+    return Math.round((parseLocalDate(to) - parseLocalDate(from)) / 86400000);
+  }
+
+  function formatShortDate(dateString) {
+    const date = parseLocalDate(dateString);
+    return `${date.getMonth() + 1}月${date.getDate()}日`;
+  }
+
+  function formatLongDate(dateString) {
+    const date = parseLocalDate(dateString);
+    return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 · ${DAY_NAMES[date.getDay()]}`;
+  }
+
+  function escapeHtml(value) {
     return String(value ?? "")
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
@@ -539,2293 +70,1818 @@
       .replaceAll("'", "&#039;");
   }
 
-  function getMealType(id) {
-    return MEAL_TYPES.find((type) => type.id === id) || MEAL_TYPES[1];
-  }
-
-  function currentMealType() {
-    const hour = new Date().getHours();
-    if (hour < 10) return "breakfast";
-    if (hour < 15) return "lunch";
-    if (hour < 20) return "dinner";
-    return "snack";
-  }
-
-  function getBand(sessions = state.profile.sessions) {
-    return PLAN_BANDS.find((band) => sessions <= band.max) || PLAN_BANDS[0];
-  }
-
-  function calculateAutoTargets(weight, sessions) {
-    const band = getBand(sessions);
-    const carbs = Math.round(weight * band.carbs);
-    const protein = Math.round(weight * band.protein);
-    const fat = Math.round(weight * band.fat);
-    return {
-      carbs,
-      protein,
-      fat,
-      kcal: Math.round(carbs * 4 + protein * 4 + fat * 9),
-      band,
-      source: "auto"
+  function debounce(fn, delay) {
+    let timer;
+    return (...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn(...args), delay);
     };
+  }
+
+  function openDatabase() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, 1);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(DB_STORE)) {
+          db.createObjectStore(DB_STORE);
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async function readStoredState() {
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, "readonly");
+      const request = tx.objectStore(DB_STORE).get(DB_KEY);
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async function writeStoredState(value) {
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, "readwrite");
+      tx.objectStore(DB_STORE).put(value, DB_KEY);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  function defaultState() {
+    const today = localDateString();
+    return {
+      version: 1,
+      profile: {
+        name: "我的减脂计划",
+        sex: "female",
+        height: 165,
+        weight: 70,
+        goalWeight: 62,
+        weeklyExerciseHours: 2.5,
+        femaleSupport: true,
+        startDate: today
+      },
+      settings: {
+        apiProvider: "deepseek",
+        model: "deepseek-flash",
+        baseUrl: "https://api.deepseek.com",
+        connectionMode: "auto",
+        proxyUrl: ""
+      },
+      weights: [],
+      meals: [],
+      dayNotes: {},
+      carbModifier: 0,
+      lastAutoAdjustDate: null,
+      selectedMealDate: today
+    };
+  }
+
+  function hydrateState(stored) {
+    const base = defaultState();
+    if (!stored || typeof stored !== "object") return base;
+    const mergedSettings = { ...base.settings, ...(stored.settings || {}) };
+    if (!stored.settings?.apiProvider) {
+      mergedSettings.apiProvider = "deepseek";
+      mergedSettings.model = "deepseek-flash";
+      mergedSettings.baseUrl = "https://api.deepseek.com";
+    }
+    else if (
+      stored.settings.apiProvider === "dashscope" &&
+      !localStorage.getItem(DASHSCOPE_AI_KEY)
+    ) {
+      mergedSettings.apiProvider = "deepseek";
+      mergedSettings.model = "deepseek-flash";
+      mergedSettings.baseUrl = "https://api.deepseek.com";
+    }
+    return {
+      ...base,
+      ...stored,
+      profile: { ...base.profile, ...(stored.profile || {}) },
+      settings: mergedSettings,
+      weights: Array.isArray(stored.weights) ? stored.weights : [],
+      meals: Array.isArray(stored.meals) ? stored.meals : [],
+      dayNotes: stored.dayNotes && typeof stored.dayNotes === "object" ? stored.dayNotes : {},
+      carbModifier: num(stored.carbModifier),
+      selectedMealDate: stored.selectedMealDate || base.selectedMealDate
+    };
+  }
+
+  let state = defaultState();
+  let aiHealth = { configured: false, model: state.settings.model };
+  let aiMode = "unknown";
+  let backendAvailable = false;
+  let draftMeal = null;
+  let toastTimer;
+  const persistedSave = debounce(async () => {
+    try {
+      await writeStoredState(state);
+    } catch (error) {
+      console.error(error);
+      showToast("本地保存失败，请检查浏览器存储空间。", true);
+    }
+  }, 120);
+
+  function saveState() {
+    persistedSave();
+  }
+
+  function showToast(message, isError = false) {
+    const toast = $("#toast");
+    toast.textContent = message;
+    toast.style.background = isError ? "rgba(131, 53, 45, 0.96)" : "";
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove("show"), 3200);
+  }
+
+  function currentWeight() {
+    const sorted = [...state.weights].sort((a, b) => a.date.localeCompare(b.date));
+    return sorted.length ? num(sorted.at(-1).weight, state.profile.weight) : num(state.profile.weight);
+  }
+
+  function exerciseCoefficients(hours) {
+    if (hours <= 3.49) return { carbs: 2.2, protein: 1.4, fat: 0.8, label: "2–3 小时" };
+    if (hours <= 5.49) return { carbs: 2.5, protein: 1.6, fat: 0.9, label: "4–5 小时" };
+    if (hours <= 7.49) return { carbs: 3.0, protein: 1.7, fat: 1.0, label: "6–7 小时" };
+    return { carbs: 3.5, protein: 1.8, fat: 1.0, label: "8–9 小时" };
   }
 
   function getTargets() {
-    if (state.profile.targetMode === "manual" && state.profile.customTargets) {
-      const custom = state.profile.customTargets;
-      const carbs = Number(custom.carbs) || 0;
-      const protein = Number(custom.protein) || 0;
-      const fat = Number(custom.fat) || 0;
-      return {
-        carbs,
-        protein,
-        fat,
-        kcal: Math.round(carbs * 4 + protein * 4 + fat * 9),
-        band: getBand(),
-        source: "manual"
-      };
-    }
-    return calculateAutoTargets(state.profile.weight, state.profile.sessions);
-  }
-
-  function macrosForGrams(food, grams) {
-    const ratio = Math.max(0, Number(grams) || 0) / 100;
+    const weight = currentWeight();
+    const coefficients = exerciseCoefficients(num(state.profile.weeklyExerciseHours, 2.5));
+    const femaleMode = state.profile.sex === "female" && state.profile.femaleSupport;
+    const proteinCoefficient = femaleMode
+      ? Math.min(coefficients.protein, 1.4)
+      : coefficients.protein;
+    const fatCoefficient = femaleMode
+      ? Math.max(coefficients.fat, 1.0)
+      : coefficients.fat;
+    const carbs = Math.max(weight * 1.5, weight * coefficients.carbs + num(state.carbModifier));
+    const protein = weight * proteinCoefficient;
+    const fat = weight * fatCoefficient;
     return {
-      carbs: round(food.per100.carbs * ratio, 1),
-      protein: round(food.per100.protein * ratio, 1),
-      fat: round(food.per100.fat * ratio, 1),
-      kcal: round(food.per100.kcal * ratio, 1)
+      weight,
+      coefficients,
+      carbs: Math.round(carbs),
+      protein: Math.round(protein),
+      fat: Math.round(fat),
+      calories: Math.round(carbs * 4 + protein * 4 + fat * 9),
+      femaleMode,
+      proteinCoefficient,
+      fatCoefficient
     };
   }
 
-  function parseAmount(raw) {
-    if (/^\d+(?:\.\d+)?$/.test(raw)) return Number(raw);
-    const map = {
-      半: 0.5,
-      一: 1,
-      两: 2,
-      二: 2,
-      三: 3,
-      四: 4,
-      五: 5,
-      六: 6,
-      七: 7,
-      八: 8,
-      九: 9,
-      十: 10
-    };
-    if (map[raw] != null) return map[raw];
-    if (raw.startsWith("十")) return 10 + (map[raw.slice(1)] || 0);
-    if (raw.includes("十")) {
-      const [tens, ones] = raw.split("十");
-      return (map[tens] || 1) * 10 + (map[ones] || 0);
-    }
-    return Number(raw);
-  }
-
-  function parseFoodText(text) {
-    const source = String(text || "").trim();
-    if (!source) return [];
-
-    const candidates = [];
-    FOODS.forEach((food) => {
-      food.aliases.forEach((alias) => {
-        let from = 0;
-        while (from < source.length) {
-          const index = source.indexOf(alias, from);
-          if (index < 0) break;
-          candidates.push({
-            food,
-            alias,
-            start: index,
-            end: index + alias.length
-          });
-          from = index + alias.length;
-        }
-      });
-    });
-
-    candidates.sort((a, b) => b.alias.length - a.alias.length || a.start - b.start);
-    const selected = [];
-    const occupied = [];
-    candidates.forEach((candidate) => {
-      const overlaps = occupied.some(
-        (range) => candidate.start < range.end && candidate.end > range.start
-      );
-      if (overlaps) return;
-      occupied.push({ start: candidate.start, end: candidate.end });
-      selected.push(candidate);
-    });
-    selected.sort((a, b) => a.start - b.start);
-
-    return selected.map((match, index) => {
-      const nextStart = selected[index + 1]?.start ?? source.length;
-      const after = source.slice(match.end, Math.min(nextStart, match.end + 30));
-      const before = source.slice(Math.max(0, match.start - 16), match.start);
-      const amountMatch =
-        after.match(
-          /(半|一|两|二|三|四|五|六|七|八|九|十|十[一二三四五六七八九]|[一二三四五六七八九]十[一二三四五六七八九]?|\d+(?:\.\d+)?)\s*(kg|公斤|g|克|ml|毫升|个|只|枚|颗|片|碗|杯|勺|份|根|张|把|两)/i
-        ) ||
-        before.match(
-          /(半|一|两|二|三|四|五|六|七|八|九|十|十[一二三四五六七八九]|[一二三四五六七八九]十[一二三四五六七八九]?|\d+(?:\.\d+)?)\s*(kg|公斤|g|克|ml|毫升|个|只|枚|颗|片|碗|杯|勺|份|根|张|把|两)/i
-        );
-
-      let grams = match.food.serving;
-      let quantityText = `${match.food.serving}g`;
-      if (amountMatch) {
-        const amount = parseAmount(amountMatch[1]);
-        const unit = amountMatch[2].toLowerCase();
-        if (unit === "kg" || unit === "公斤") {
-          grams = amount * 1000;
-        } else if (unit === "g" || unit === "克") {
-          grams = amount;
-        } else if (unit === "ml" || unit === "毫升") {
-          grams = amount * (match.food.density || 1);
-        } else if (unit === "两") {
-          grams = amount * 50;
-        } else {
-          const unitWeight = match.food.unitGrams?.[unit] || match.food.serving;
-          grams = amount * unitWeight;
-        }
-        quantityText = `${amountMatch[1]}${amountMatch[2]}`;
-      }
-
-      grams = Math.max(1, round(grams, 1));
-      const macros = macrosForGrams(match.food, grams);
-      return {
-        id: uid(),
-        name: match.food.name,
-        grams,
-        ...macros,
-        quantityText,
-        confidence: amountMatch ? 0.95 : 0.7,
-        source: "text",
-        note: match.food.note || ""
-      };
-    });
-  }
-
-  function totalItems(items) {
-    return (items || []).reduce(
-      (sum, item) => {
-        sum.carbs += Number(item.carbs) || 0;
-        sum.protein += Number(item.protein) || 0;
-        sum.fat += Number(item.fat) || 0;
-        sum.kcal += Number(item.kcal) || 0;
-        return sum;
-      },
-      { carbs: 0, protein: 0, fat: 0, kcal: 0 }
-    );
-  }
-
-  function normalizeTotals(totals) {
+  function mealTotals(meal) {
+    const totals = (meal.items || []).reduce((sum, item) => {
+      sum.protein += num(item.protein);
+      sum.carbs += num(item.carbs);
+      sum.fat += num(item.fat);
+      return sum;
+    }, { protein: 0, carbs: 0, fat: 0 });
+    totals.calories = Math.round(totals.protein * 4 + totals.carbs * 4 + totals.fat * 9);
     return {
-      carbs: round(totals.carbs, 1),
       protein: round(totals.protein, 1),
+      carbs: round(totals.carbs, 1),
       fat: round(totals.fat, 1),
-      kcal: round(totals.kcal, 0)
+      calories: totals.calories
     };
   }
 
-  function mealsForDate(date = selectedDate) {
+  function dayMeals(date) {
     return state.meals
-      .filter((meal) => meal.date === date)
+      .filter(meal => meal.date === date)
       .sort((a, b) => {
         const order = { breakfast: 0, lunch: 1, dinner: 2, snack: 3 };
         return (order[a.type] ?? 9) - (order[b.type] ?? 9) || a.createdAt.localeCompare(b.createdAt);
       });
   }
 
-  function dayTotals(date = selectedDate) {
-    return normalizeTotals(
-      totalItems(mealsForDate(date).flatMap((meal) => meal.items || []))
-    );
+  function dayTotals(date) {
+    const totals = dayMeals(date).reduce((sum, meal) => {
+      const mealValue = mealTotals(meal);
+      sum.protein += mealValue.protein;
+      sum.carbs += mealValue.carbs;
+      sum.fat += mealValue.fat;
+      sum.calories += mealValue.calories;
+      return sum;
+    }, { protein: 0, carbs: 0, fat: 0, calories: 0 });
+    return {
+      protein: round(totals.protein, 1),
+      carbs: round(totals.carbs, 1),
+      fat: round(totals.fat, 1),
+      calories: Math.round(totals.calories)
+    };
   }
 
-  function findLatestWeight(onOrBefore = selectedDate) {
+  function recentWeights(days = 90) {
+    const cutoff = addDays(localDateString(), -days);
     return [...state.weights]
-      .filter((entry) => entry.date <= onOrBefore)
-      .sort((a, b) => b.date.localeCompare(a.date))[0] || null;
+      .filter(entry => entry.date >= cutoff)
+      .sort((a, b) => a.date.localeCompare(b.date));
   }
 
-  function toast(message, type = "success") {
-    const region = $("#toast-region");
-    const item = document.createElement("div");
-    item.className = `toast${type === "error" ? " is-error" : ""}`;
-    item.textContent = message;
-    region.appendChild(item);
-    window.setTimeout(() => {
-      item.style.opacity = "0";
-      item.style.transform = "translateY(6px)";
-      window.setTimeout(() => item.remove(), 220);
-    }, 3000);
+  function weightRate(entries = state.weights) {
+    const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
+    if (sorted.length < 2) return null;
+    const first = sorted[0];
+    const last = sorted.at(-1);
+    const days = daysBetween(first.date, last.date);
+    if (days <= 0) return null;
+    return ((num(last.weight) - num(first.weight)) / num(first.weight)) * (7 / days) * 100;
   }
 
-  function switchView(view) {
-    currentView = view;
-    $$(".view").forEach((section) => {
-      section.classList.toggle("is-active", section.id === `view-${view}`);
-    });
-    $$("[data-view]").forEach((button) => {
-      button.classList.toggle("is-active", button.dataset.view === view);
-    });
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    if (view === "today") renderToday();
-    if (view === "trends") renderTrends();
-    if (view === "plan") renderPlan();
-    if (view === "settings") fillSettings();
+  function loggedDaysInRange(dates) {
+    return dates.filter(date => dayMeals(date).length > 0).length;
   }
 
-  function updateDateUI() {
-    const date = parseDateISO(selectedDate);
-    $("#date-label").textContent = `${date.getMonth() + 1}月${date.getDate()}日`;
-    $("#date-weekday").textContent =
-      selectedDate === toDateISO(new Date())
-        ? "今天"
-        : new Intl.DateTimeFormat("zh-CN", { weekday: "long" }).format(date);
-    $("#date-input").value = selectedDate;
-    $("#next-day").disabled = selectedDate >= toDateISO(new Date());
-    $("#next-day").style.opacity = selectedDate >= toDateISO(new Date()) ? "0.38" : "1";
-    const overdue = selectedDate < toDateISO(new Date());
+  function lastWeekDates(endDate = localDateString()) {
+    return Array.from({ length: 7 }, (_, index) => addDays(endDate, index - 6));
+  }
+
+  function dailyCoach() {
+    const today = localDateString();
+    const totals = dayTotals(today);
+    const targets = getTargets();
+    const meals = dayMeals(today);
+    const hour = new Date().getHours();
+
+    if (!meals.length) {
+      return "先记录第一餐，我会根据今天已吃的内容，告诉你最值得调整的一件事。";
+    }
+    if (totals.protein < targets.protein * 0.55 && hour >= 15) {
+      return `蛋白质还差 ${Math.max(0, Math.round(targets.protein - totals.protein))} g。下一餐优先一掌心鱼虾、鸡肉或瘦牛肉。`;
+    }
+    if (totals.fat > targets.fat * 1.05) {
+      return "脂肪已经接近或超过目标。接下来少用油、坚果和浓酱，蛋白质与蔬菜照常吃。";
+    }
+    if (totals.calories > targets.calories * 1.05) {
+      return "今天总热量略高。不用补偿性挨饿，下一餐缩小主食和烹调油即可。";
+    }
+    if (totals.calories < targets.calories * 0.62 && hour >= 20) {
+      return "今天吃得偏少。若并不饿可以结束；若训练后明显饥饿，补一份酸奶或水果。";
+    }
+    if (
+      Math.abs(totals.protein - targets.protein) <= targets.protein * 0.12 &&
+      Math.abs(totals.fat - targets.fat) <= targets.fat * 0.15
+    ) {
+      return "蛋白质和脂肪都很稳。接下来只需要把今天剩余的碳水和蔬菜安排好。";
+    }
+    return "记录得不错。保持稳定的三餐结构，比追求某一天的数字完美更重要。";
+  }
+
+  function insightForDay() {
+    const today = localDateString();
+    const totals = dayTotals(today);
     const target = getTargets();
-    $("#today-eyebrow").textContent = overdue ? "补记这一天" : "今天，认真吃饭";
-    $("#welcome-title").textContent =
-      selectedDate === toDateISO(new Date())
-        ? "记录，是身体变化的第一笔。"
-        : `把 ${date.getMonth() + 1} 月 ${date.getDate()} 日 吃下的，也认真记下来。`;
-    $("#welcome-copy").textContent = overdue
-      ? "补记不需要追求绝对精确，尽量还原食物和份量即可。"
-      : `今天的计划是 ${target.kcal} 千卡。别只盯着数字，先照顾好每一餐。`;
+    const caloriePct = target.calories ? totals.calories / target.calories : 0;
+    if (!dayMeals(today).length) return "从一餐开始记录";
+    if (caloriePct < 0.8) return "今天还有空间";
+    if (caloriePct <= 1.08) return "节奏刚刚好";
+    return "关注下一餐的份量";
   }
 
-  function setValue(id, value) {
-    const element = document.getElementById(id);
+  function setText(selector, value) {
+    const element = $(selector);
     if (element) element.textContent = value;
   }
 
-  function renderToday() {
-    updateDateUI();
+  function renderDashboard() {
+    const today = localDateString();
+    const totals = dayTotals(today);
     const targets = getTargets();
-    const totals = dayTotals();
-    const remaining = targets.kcal - totals.kcal;
-    const caloriePercent = targets.kcal ? clamp((totals.kcal / targets.kcal) * 100, 0, 100) : 0;
+    const meals = dayMeals(today);
+    const weight = currentWeight();
+    const sortedWeights = recentWeights(90);
+    const latestChange = sortedWeights.length >= 2
+      ? num(sortedWeights.at(-1).weight) - num(sortedWeights.at(-2).weight)
+      : null;
 
-    $("#calorie-ring").style.setProperty("--progress", `${caloriePercent * 3.6}deg`);
-    setValue("remaining-kcal", formatNumber(remaining));
-    setValue("target-kcal", `${formatNumber(targets.kcal)} kcal`);
-    setValue("consumed-kcal", `${formatNumber(totals.kcal)} kcal`);
-    setValue("carb-consumed", formatNumber(totals.carbs, totals.carbs % 1 ? 1 : 0));
-    setValue("protein-consumed", formatNumber(totals.protein, totals.protein % 1 ? 1 : 0));
-    setValue("fat-consumed", formatNumber(totals.fat, totals.fat % 1 ? 1 : 0));
-    setValue("carb-target", formatNumber(targets.carbs));
-    setValue("protein-target", formatNumber(targets.protein));
-    setValue("fat-target", formatNumber(targets.fat));
+    setText("#topbar-date", formatLongDate(today));
+    setText("#side-calorie-target", `${targets.calories} kcal`);
+    setText("#side-target-detail", `${targets.carbs} 碳水 · ${targets.protein} 蛋白 · ${targets.fat} 脂肪`);
+    setText("#hero-title", meals.length ? "把今天吃明白" : "从第一餐开始");
+    setText("#hero-subtitle", `${state.profile.name}，根据当前 ${round(weight, 1)} kg 与每周 ${num(state.profile.weeklyExerciseHours)} 小时运动量计算。`);
+    setText("#hero-calories", totals.calories);
+    setText("#hero-calorie-target", targets.calories);
+    setText("#hero-calorie-state", insightForDay());
 
-    const calorieStatus = $("#calorie-status");
-    if (totals.kcal === 0) {
-      calorieStatus.textContent = "等待记录";
-      calorieStatus.classList.remove("is-over");
-      $("#calorie-message").textContent = "先从第一餐开始记录。";
-    } else if (remaining < 0) {
-      calorieStatus.textContent = `超出 ${formatNumber(Math.abs(remaining))}`;
-      calorieStatus.classList.add("is-over");
-      $("#calorie-message").textContent = "一次超出不用修正，下一餐回到计划即可。";
-    } else if (caloriePercent >= 90) {
-      calorieStatus.textContent = "接近目标";
-      calorieStatus.classList.remove("is-over");
-      $("#calorie-message").textContent = "今天执行得不错，剩余额度留给真正需要时。";
-    } else {
-      calorieStatus.textContent = `完成 ${Math.round(caloriePercent)}%`;
-      calorieStatus.classList.remove("is-over");
-      $("#calorie-message").textContent = "按计划继续吃，不需要刻意留下太多余量。";
+    const orbitPct = clamp(targets.calories ? totals.calories / targets.calories : 0, 0, 1);
+    $("#calorie-orbit-progress").style.strokeDashoffset = String(452.39 * (1 - orbitPct));
+
+    renderMetric("protein", totals.protein, targets.protein, "g");
+    renderMetric("carbs", totals.carbs, targets.carbs, "g");
+    renderMetric("fat", totals.fat, targets.fat, "g");
+
+    setText("#current-weight", round(weight, 1));
+    setText("#weight-change", latestChange === null ? "—" : `${latestChange > 0 ? "+" : ""}${round(latestChange, 1)} kg`);
+    setText("#weight-target-copy", sortedWeights.length
+      ? `目标 ${round(state.profile.goalWeight, 1)} kg · 还差 ${Math.max(0, round(weight - state.profile.goalWeight, 1))} kg`
+      : "记录一次体重后开始优化");
+
+    $("#mini-weight-chart").innerHTML = buildMiniWeightChart(sortedWeights);
+    setText("#daily-coach-message", dailyCoach());
+    setText("#logged-meal-count", `${meals.length} 餐已记录`);
+    $("#today-meals").innerHTML = renderMealList(meals, today, true);
+
+    setText("#formula-weight", `${round(weight, 1)} kg`);
+    setText("#formula-exercise", `每周 ${num(state.profile.weeklyExerciseHours)} 小时运动${targets.femaleMode ? " · 女性友好" : ""}`);
+    setText("#formula-coefficients", `${targets.coefficients.carbs} / ${targets.proteinCoefficient} / ${targets.fatCoefficient}`);
+    setText("#formula-modifier", `${state.carbModifier > 0 ? "+" : ""}${state.carbModifier} g 碳水`);
+    setText("#formula-calories", `${targets.calories} kcal`);
+  }
+
+  function renderMetric(key, actual, target, unit) {
+    const pct = target ? clamp(actual / target, 0, 1) : 0;
+    const percentText = target ? `${Math.round((actual / target) * 100)}%` : "0%";
+    setText(`#${key}-value`, round(actual, actual < 20 ? 1 : 0));
+    setText(`#${key}-target`, target);
+    setText(`#${key}-percent`, percentText);
+    $(`#${key}-bar`).style.width = `${pct * 100}%`;
+  }
+
+  function renderMealList(meals, date, compact = false) {
+    if (!meals.length) {
+      return `
+        <div class="empty-state">
+          <strong>${compact ? "今天还没有饮食记录" : "这一天还没有记录"}</strong>
+          <p>拍一张照片，AI 会帮你拆分食物和三大营养素。</p>
+          <button class="button button-ghost" type="button" data-open-meal data-meal-date="${date}">记录第一餐</button>
+        </div>`;
     }
-
-    $("#carb-bar").style.width = `${targets.carbs ? clamp((totals.carbs / targets.carbs) * 100, 0, 100) : 0}%`;
-    $("#protein-bar").style.width = `${targets.protein ? clamp((totals.protein / targets.protein) * 100, 0, 100) : 0}%`;
-    $("#fat-bar").style.width = `${targets.fat ? clamp((totals.fat / targets.fat) * 100, 0, 100) : 0}%`;
-
-    setValue("carb-note", macroMessage(totals.carbs, targets.carbs, "主食、水果和训练供能"));
-    setValue("protein-note", macroMessage(totals.protein, targets.protein, "优先保证，每餐分配更均匀"));
-    setValue("fat-note", macroMessage(totals.fat, targets.fat, "别把烹饪油和坚果漏掉"));
-
-    setValue("side-kcal", formatNumber(targets.kcal));
-    $("#side-progress-bar").style.width = `${caloriePercent}%`;
-    setValue(
-      "side-progress-text",
-      totals.kcal ? `已摄入 ${formatNumber(totals.kcal)} 千卡` : "还没有记录"
-    );
-
-    renderMeals();
-    renderWeightCard();
-    renderCoach();
-    renderProfileChrome();
-  }
-
-  function macroMessage(consumed, target, fallback) {
-    if (!consumed) return fallback;
-    const ratio = target ? consumed / target : 0;
-    if (ratio < 0.65) return `还差 ${formatNumber(Math.max(0, target - consumed))}g，下一餐补上`;
-    if (ratio <= 1.08) return "已经接近目标";
-    return `超出 ${formatNumber(consumed - target)}g，不用补救`;
-  }
-
-  function renderMeals() {
-    const container = $("#meal-list");
-    const meals = mealsForDate();
-    container.innerHTML = MEAL_TYPES.map((type) => {
-      const match = meals.filter((meal) => meal.type === type.id);
-      if (!match.length) {
-        return `
-          <div class="meal-section">
-            <div class="meal-type"><strong>${type.label}</strong><span>未记录</span></div>
-            <button class="empty-meal" type="button" data-open-meal="${type.id}">
-              <i>+</i><span>记录${type.label}</span>
-            </button>
-            <div></div>
-          </div>`;
-      }
-      return match
-        .map((meal, index) => {
-          const total = normalizeTotals(totalItems(meal.items));
-          const names = (meal.items || [])
-            .slice(0, 6)
-            .map(
-              (item) =>
-                `<span class="meal-item-name">${escapeHTML(item.name)} <small>${formatNumber(item.grams, item.grams % 1 ? 1 : 0)}g</small></span>`
-            )
-            .join("");
-          return `
-            <div class="meal-section">
-              <div class="meal-type">
-                <strong>${type.label}${match.length > 1 ? ` ${index + 1}` : ""}</strong>
-                <span>${escapeHTML(meal.time || "")}</span>
-              </div>
-              <div class="meal-detail">
-                ${meal.photo ? `<img class="meal-photo" src="${meal.photo}" alt="${type.label}照片" data-lightbox="${meal.photo}">` : ""}
-                <div class="meal-items">${names || '<span class="meal-item-name">未命名食物</span>'}</div>
-                ${meal.note ? `<p class="meal-note">${escapeHTML(meal.note)}</p>` : ""}
-              </div>
-              <div class="meal-total">
-                <strong>${formatNumber(total.kcal)} kcal</strong>
-                <span>C ${formatNumber(total.carbs, total.carbs % 1 ? 1 : 0)} · P ${formatNumber(total.protein, total.protein % 1 ? 1 : 0)} · F ${formatNumber(total.fat, total.fat % 1 ? 1 : 0)}</span>
-                <div class="meal-actions">
-                  <button class="mini-action" type="button" data-edit-meal="${meal.id}">编辑</button>
-                  <button class="mini-action" type="button" data-delete-meal="${meal.id}">删除</button>
-                </div>
-              </div>
-            </div>`;
-        })
-        .join("");
+    return meals.map(meal => {
+      const totals = mealTotals(meal);
+      const meta = MEAL_META[meal.type] || MEAL_META.snack;
+      const title = meal.title || (meal.items || []).map(item => item.name).filter(Boolean).slice(0, 3).join("、") || meta.name;
+      const image = meal.images?.[0]
+        ? `<img src="${meal.images[0]}" alt="${escapeHtml(meta.name)}照片">`
+        : escapeHtml(meta.glyph);
+      return `
+        <article class="meal-item">
+          <div class="meal-thumb">${image}</div>
+          <div class="meal-main">
+            <strong>${escapeHtml(meta.name)} · ${escapeHtml(title)}</strong>
+            <p>${totals.calories} kcal${meal.description ? ` · ${escapeHtml(meal.description)}` : ""}</p>
+          </div>
+          <div class="meal-macros" aria-label="营养摘要">
+            <span class="p">P ${round(totals.protein, 1)}</span>
+            <span class="c">C ${round(totals.carbs, 1)}</span>
+            <span class="f">F ${round(totals.fat, 1)}</span>
+          </div>
+          <div class="meal-actions">
+            <button class="icon-mini" type="button" data-edit-meal="${meal.id}" title="编辑">✎</button>
+            <button class="icon-mini" type="button" data-delete-meal="${meal.id}" title="删除">×</button>
+          </div>
+        </article>`;
     }).join("");
   }
 
-  function renderProfileChrome() {
-    const name = state.profile.name.trim() || "设置我的计划";
-    setValue("profile-name", name);
-    setValue(
-      "profile-subtitle",
-      `${formatNumber(state.profile.weight, 1)}kg · 每周 ${state.profile.sessions} 练`
-    );
-    setValue("profile-avatar", (state.profile.name.trim()[0] || "食").toUpperCase());
-    setValue("mobile-profile-avatar", (state.profile.name.trim()[0] || "食").toUpperCase());
+  function renderMealsView() {
+    const selectedDate = state.selectedMealDate || localDateString();
+    $("#meal-date-picker").value = selectedDate;
+    setText("#meal-date-heading", selectedDate === localDateString() ? "今天" : formatLongDate(selectedDate));
+    const meals = dayMeals(selectedDate);
+    const totals = dayTotals(selectedDate);
+    const targets = getTargets();
+    $("#selected-day-meals").innerHTML = renderMealList(meals, selectedDate, false);
+    setText("#meal-day-summary", `${meals.length} 餐 · ${totals.calories} kcal`);
+    $("#selected-day-totals").innerHTML = `
+      <div><span>蛋白质</span><strong>${round(totals.protein, 1)} g</strong></div>
+      <div><span>碳水</span><strong>${round(totals.carbs, 1)} g</strong></div>
+      <div><span>脂肪</span><strong>${round(totals.fat, 1)} g</strong></div>
+      <div><span>热量</span><strong>${totals.calories} kcal</strong></div>`;
+    $("#selected-day-bars").innerHTML = [
+      ["蛋白", totals.protein, targets.protein, "#ef8b6f"],
+      ["碳水", totals.carbs, targets.carbs, "#d9b744"],
+      ["脂肪", totals.fat, targets.fat, "#6699ad"]
+    ].map(([label, actual, target, color]) => {
+      const pct = target ? clamp((actual / target) * 100, 0, 100) : 0;
+      return `
+        <div class="balance-row">
+          <span>${label}</span>
+          <div class="progress"><i style="width:${pct}%;background:${color}"></i></div>
+          <b>${round(actual, 1)} / ${round(target)} g</b>
+        </div>`;
+    }).join("");
+    $("#day-note").value = state.dayNotes[selectedDate]?.note || "";
   }
 
-  function renderWeightCard() {
-    const weights = [...state.weights]
-      .filter((entry) => entry.date <= selectedDate)
+  function renderWeightView() {
+    const sorted = [...state.weights].sort((a, b) => a.date.localeCompare(b.date));
+    const latest = currentWeight();
+    const goal = num(state.profile.goalWeight);
+    const rate = weightRate(sorted);
+    const sortedChanges = sorted.length >= 2
+      ? latest - num(sorted.at(-2).weight)
+      : null;
+    setText("#weight-page-current", round(latest, 1));
+    setText("#weight-page-goal", round(goal, 1));
+    setText("#weight-page-rate", rate === null ? "—" : `${rate > 0 ? "+" : ""}${round(rate, 2)}`);
+    setText("#weight-page-modifier", `${state.carbModifier > 0 ? "+" : ""}${state.carbModifier}`);
+    setText("#weight-page-delta", sortedChanges === null
+      ? "等待第二次固定条件测量"
+      : `较上次 ${sortedChanges > 0 ? "+" : ""}${round(sortedChanges, 1)} kg`);
+    setText("#weight-page-remaining", latest <= goal
+      ? "已经到达设定目标"
+      : `还需要减少 ${round(latest - goal, 1)} kg`);
+
+    $("#weight-chart").innerHTML = buildWeightChart(recentWeights(90));
+    $("#weight-list").innerHTML = sorted.length
+      ? [...sorted].reverse().map((entry, index) => `
+          <div class="weight-entry">
+            <div>
+              <strong>${round(entry.weight, 1)} kg</strong>
+              <p>${formatShortDate(entry.date)}${entry.note ? ` · ${escapeHtml(entry.note)}` : ""}</p>
+            </div>
+            <button class="icon-mini" type="button" data-delete-weight="${entry.id}" title="删除">×</button>
+          </div>`).join("")
+      : `<div class="empty-state"><strong>还没有体重记录</strong><p>每周固定时间记录，趋势才有意义。</p><button class="button button-ghost" type="button" data-open-weight>记录当前体重</button></div>`;
+  }
+
+  function reportData() {
+    const dates = lastWeekDates();
+    const days = dates.map(date => {
+      const totals = dayTotals(date);
+      const meals = dayMeals(date);
+      return { date, totals, meals };
+    });
+    const logged = days.filter(day => day.meals.length);
+    const targets = getTargets();
+    const averages = logged.length ? logged.reduce((sum, day) => {
+      sum.protein += day.totals.protein;
+      sum.carbs += day.totals.carbs;
+      sum.fat += day.totals.fat;
+      sum.calories += day.totals.calories;
+      return sum;
+    }, { protein: 0, carbs: 0, fat: 0, calories: 0 }) : null;
+    if (averages) {
+      Object.keys(averages).forEach(key => { averages[key] /= logged.length; });
+    }
+    let macroAlignment = 0;
+    if (logged.length) {
+      macroAlignment = logged.reduce((sum, day) => {
+        const deviations = [
+          targets.protein ? Math.abs(day.totals.protein - targets.protein) / targets.protein : 0,
+          targets.carbs ? Math.abs(day.totals.carbs - targets.carbs) / targets.carbs : 0,
+          targets.fat ? Math.abs(day.totals.fat - targets.fat) / targets.fat : 0
+        ];
+        return sum + clamp(1 - deviations.reduce((a, b) => a + b, 0) / 3, 0, 1);
+      }, 0) / logged.length;
+    }
+    const score = Math.round(clamp(logged.length / 7 * 56 + macroAlignment * 44, 0, 100));
+    const startWeight = state.weights
+      .filter(entry => entry.date >= dates[0] && entry.date <= dates.at(-1))
       .sort((a, b) => a.date.localeCompare(b.date));
-    const latest = weights.at(-1);
-    setValue("current-weight", latest ? formatNumber(latest.weight, 1) : "--");
-    setValue("goal-weight", `${formatNumber(state.profile.goalWeight, 1)} kg`);
-    setValue(
-      "start-weight",
-      weights.length ? `${formatNumber(weights[0].weight, 1)} kg` : "--"
-    );
-    if (weights.length >= 2) {
-      const diff = weights.at(-1).weight - weights[0].weight;
-      setValue("weight-change", `${diff < 0 ? "下降" : diff > 0 ? "上升" : "变化"} ${formatNumber(Math.abs(diff), 1)}kg`);
-    } else {
-      setValue("weight-change", "记录后查看变化");
-    }
-    $("#weight-sparkline").innerHTML = buildSparkline(weights.slice(-14));
+    return { dates, days, logged, targets, averages, score, weightEntries: startWeight };
   }
 
-  function buildSparkline(entries) {
-    if (entries.length < 2) {
-      return '<div class="chart-empty">记录两次体重后，这里会出现趋势线</div>';
+  function renderReport() {
+    const report = reportData();
+    setText("#report-week-label", `${formatShortDate(report.dates[0])} — ${formatShortDate(report.dates.at(-1))}`);
+    setText("#report-score", report.score);
+    setText("#report-score-copy", report.score >= 80
+      ? "记录和营养结构都很稳定"
+      : report.score >= 55
+        ? "方向正确，继续提高记录完整度"
+        : report.logged.length ? "先把数据记完整，再追求精准" : "完成几次饮食记录后生成");
+    setText("#report-score-ring", `${report.score}%`);
+    $(".score-ring").style.borderTopColor = report.score >= 70 ? "var(--lime)" : "var(--coral)";
+    setText("#report-logged-days", `${report.logged.length} / 7`);
+    const change = report.weightEntries.length >= 2
+      ? num(report.weightEntries.at(-1).weight) - num(report.weightEntries[0].weight)
+      : null;
+    setText("#report-weight-change", change === null ? "—" : `${change > 0 ? "+" : ""}${round(change, 1)} kg`);
+    setText("#report-avg-calories", report.averages ? `${Math.round(report.averages.calories)} kcal` : "—");
+    setText("#report-target-pill", `目标 ${getTargets().calories} kcal`);
+
+    $("#report-macros").innerHTML = ["protein", "carbs", "fat"].map((key, index) => {
+      const names = { protein: "蛋白质", carbs: "碳水", fat: "脂肪" };
+      const colors = ["#ef8b6f", "#d9b744", "#6699ad"];
+      const actual = report.averages ? report.averages[key] : 0;
+      const target = report.targets[key];
+      const pct = target ? clamp(actual / target * 100, 0, 100) : 0;
+      return `
+        <div class="report-macro-row">
+          <span>${names[key]}</span>
+          <div class="progress"><i style="width:${pct}%;background:${colors[index]}"></i></div>
+          <b>${report.averages ? round(actual) : "—"} / ${target} g</b>
+        </div>`;
+    }).join("");
+
+    const insights = buildWeeklyInsights(report);
+    $("#report-insights").innerHTML = insights.map((text, index) => `
+      <div class="insight"><span>${String(index + 1).padStart(2, "0")}</span><p>${escapeHtml(text)}</p></div>
+    `).join("");
+
+    $("#weekly-bars").innerHTML = report.days.map(day => {
+      const ratio = report.targets.calories ? clamp(day.totals.calories / report.targets.calories, 0, 1.25) : 0;
+      const height = clamp(ratio * 100, 2, 100);
+      return `
+        <div class="day-bar-wrap">
+          <div class="day-bar-shell">
+            <div class="day-bar" style="--bar-fill:${height}%;${!day.meals.length ? "opacity:.35" : ""}">
+              <i></i>
+            </div>
+          </div>
+          <span>${DAY_NAMES[parseLocalDate(day.date).getDay()].replace("周", "")}</span>
+        </div>`;
+    }).join("");
+  }
+
+  function buildWeeklyInsights(report) {
+    const insights = [];
+    if (!report.logged.length) {
+      return ["从今天开始记录至少 4 天，周报才能判断饮食结构和热量趋势。", "本周先建立固定三餐和拍照习惯，不必急着调整目标。"];
     }
-    const width = 260;
-    const height = 60;
-    const pad = 5;
-    const values = entries.map((entry) => entry.weight);
-    const min = Math.min(...values) - 0.4;
-    const max = Math.max(...values) + 0.4;
-    const points = entries
-      .map((entry, index) => {
-        const x = pad + (index / (entries.length - 1)) * (width - pad * 2);
-        const y = pad + ((max - entry.weight) / Math.max(0.1, max - min)) * (height - pad * 2);
-        return `${round(x, 1)},${round(y, 1)}`;
-      })
-      .join(" ");
-    const area = `${points} ${width - pad},${height - pad} ${pad},${height - pad}`;
+    if (report.logged.length < 4) {
+      insights.push(`本周只记录了 ${report.logged.length} 天，建议至少记录 4–5 天再判断方案是否有效。`);
+    }
+    if (report.averages.protein < report.targets.protein * 0.8) {
+      insights.push("平均蛋白质偏低。每餐增加一掌心鱼虾、鸡肉或瘦牛肉，优先补足蛋白质。");
+    } else if (report.averages.protein > report.targets.protein * 1.2) {
+      insights.push("平均蛋白质较高。确认肉类份量，同时保留足够蔬菜和主食。");
+    } else {
+      insights.push("蛋白质平均摄入接近目标，有利于饱腹感和瘦体重。");
+    }
+    if (report.averages.fat > report.targets.fat * 1.12) {
+      insights.push("脂肪明显偏高。优先检查烹调油、坚果、酱料和红肉，而不是继续削减蛋白质。");
+    }
+    if (report.averages.carbs < report.targets.carbs * 0.72) {
+      insights.push("碳水偏低。若训练掉力或睡眠差，可在训练前后补 20–30 g 主食。");
+    }
+    if (report.averages.calories > report.targets.calories * 1.12) {
+      insights.push("本周平均热量高于目标。下周先减少油脂和主食的隐形份量，不必做极端补偿。");
+    } else if (report.averages.calories < report.targets.calories * 0.75) {
+      insights.push("平均热量偏低。长期吃太少容易疲劳和反弹，先确认是否漏记或刻意少吃。");
+    } else {
+      insights.push("本周热量平均接近目标，继续保持当前结构。");
+    }
+    const rate = report.weightEntries.length >= 2
+      ? weightRate(report.weightEntries)
+      : null;
+    if (rate !== null) {
+      if (rate > -0.25) insights.push("本周体重下降较慢。先检查记录准确度；若执行到位，下次可保持或下调 20 g 碳水。");
+      else if (rate < -1.2) insights.push("本周下降较快。建议增加 20 g 碳水，并关注训练状态和睡眠。");
+      else insights.push(`本周体重变化约 ${round(rate, 2)}%，处于常见参考范围。`);
+    }
+    return insights.slice(0, 4);
+  }
+
+  function buildMiniWeightChart(entries) {
+    if (entries.length < 2) {
+      return `<svg viewBox="0 0 160 32" preserveAspectRatio="none"><path d="M0 20 C30 20,45 13,70 16 S115 9,160 12" fill="none" stroke="rgba(199,219,114,.55)" stroke-width="2" stroke-dasharray="4 4"/></svg>`;
+    }
+    const values = entries.map(entry => num(entry.weight));
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const spread = max - min || 1;
+    const points = values.map((value, index) => {
+      const x = index / Math.max(1, values.length - 1) * 160;
+      const y = 28 - (value - min) / spread * 22;
+      return `${round(x, 1)},${round(y, 1)}`;
+    }).join(" ");
+    return `<svg viewBox="0 0 160 32" preserveAspectRatio="none"><polyline points="${points}" fill="none" stroke="#c7db72" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  }
+
+  function buildWeightChart(entries) {
+    if (!entries.length) {
+      return `<div class="chart-empty">记录两次体重后，这里会出现趋势曲线</div>`;
+    }
+    const width = 900;
+    const height = 290;
+    const left = 54;
+    const right = 24;
+    const top = 22;
+    const bottom = 42;
+    const values = entries.map(entry => num(entry.weight));
+    const rawMin = Math.min(...values);
+    const rawMax = Math.max(...values);
+    const pad = Math.max(0.4, (rawMax - rawMin) * 0.2);
+    const min = rawMin - pad;
+    const max = rawMax + pad;
+    const span = max - min || 1;
+    const point = (entry, index) => {
+      const x = entries.length === 1
+        ? (left + width - right) / 2
+        : left + index / (entries.length - 1) * (width - left - right);
+      const y = top + (1 - (num(entry.weight) - min) / span) * (height - top - bottom);
+      return { x, y };
+    };
+    const coordinates = entries.map(point);
+    const line = coordinates.map(item => `${round(item.x, 1)},${round(item.y, 1)}`).join(" ");
+    const area = [
+      `M ${round(coordinates[0].x, 1)} ${height - bottom}`,
+      ...coordinates.map(item => `L ${round(item.x, 1)} ${round(item.y, 1)}`),
+      `L ${round(coordinates.at(-1).x, 1)} ${height - bottom}`,
+      "Z"
+    ].join(" ");
+    const gridLines = Array.from({ length: 5 }, (_, index) => {
+      const y = top + index / 4 * (height - top - bottom);
+      const value = max - index / 4 * span;
+      return `
+        <line x1="${left}" x2="${width - right}" y1="${y}" y2="${y}" stroke="rgba(31,48,39,.08)" stroke-dasharray="3 6"/>
+        <text x="${left - 10}" y="${y + 4}" text-anchor="end" fill="#7d887f" font-size="10">${round(value, 1)}</text>`;
+    }).join("");
+    const dots = coordinates.map((item, index) => `
+      <g>
+        <circle cx="${item.x}" cy="${item.y}" r="5" fill="#fffdf8" stroke="#3e735b" stroke-width="2.5"/>
+        <title>${formatShortDate(entries[index].date)} · ${round(entries[index].weight, 1)} kg</title>
+      </g>`).join("");
+    const labels = coordinates.map((item, index) => {
+      if (entries.length > 8 && index !== 0 && index !== entries.length - 1 && index % Math.ceil(entries.length / 5) !== 0) return "";
+      return `<text x="${item.x}" y="${height - 16}" text-anchor="middle" fill="#7d887f" font-size="10">${formatShortDate(entries[index].date)}</text>`;
+    }).join("");
     return `
-      <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true">
+      <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="体重趋势图">
         <defs>
-          <linearGradient id="sparkGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#61744d" stop-opacity=".22"/>
-            <stop offset="100%" stop-color="#61744d" stop-opacity="0"/>
+          <linearGradient id="weightArea" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#c7db72" stop-opacity=".34"/>
+            <stop offset="1" stop-color="#c7db72" stop-opacity="0"/>
           </linearGradient>
         </defs>
-        <polygon points="${area}" fill="url(#sparkGradient)"/>
-        <polyline points="${points}" fill="none" stroke="#61744d" stroke-width="2" vector-effect="non-scaling-stroke"/>
-      </svg>`;
-  }
-
-  function renderCoach() {
-    const totals = dayTotals();
-    const targets = getTargets();
-    let title = "先吃够蛋白质";
-    let copy = "没有记录时，我不做过度判断。先从下一餐开始。";
-    if (totals.protein >= targets.protein * 0.9) {
-      title = "蛋白质完成得不错";
-      copy = "接下来检查蔬菜、主食和油脂是否都安排到位。";
-    } else if (totals.kcal > 0 && totals.protein < targets.protein * 0.55) {
-      title = `距离蛋白质目标还差 ${formatNumber(Math.max(0, targets.protein - totals.protein))}g`;
-      copy = "下一餐优先一掌心瘦肉、鱼虾、鸡蛋或豆制品，再决定主食份量。";
-    } else if (totals.fat > targets.fat * 1.15) {
-      title = "今天油脂偏高";
-      copy = "不用刻意挨饿，下一餐减少煎炒油，选清蒸或水煮即可。";
-    } else if (totals.carbs > targets.carbs * 1.15) {
-      title = "碳水超出计划";
-      copy = "一次超出不影响长期趋势，下一次主食回到自己的一拳大小就好。";
-    } else if (totals.kcal > 0) {
-      title = "继续按节奏吃";
-      copy = "今天的关键不是吃得完美，而是把蛋白质、主食和油脂都记录完整。";
-    }
-    setValue("coach-title", title);
-    setValue("coach-copy", copy);
-  }
-
-  function lastNDates(endISO, count) {
-    return Array.from({ length: count }, (_, index) => shiftDate(endISO, -(count - 1 - index)));
-  }
-
-  function calculateWeightTrend() {
-    const entries = [...state.weights]
-      .filter((entry) => entry.date <= selectedDate)
-      .sort((a, b) => a.date.localeCompare(b.date));
-    if (entries.length < 2) return { status: "empty", pct: null };
-
-    const recentStart = shiftDate(selectedDate, -6);
-    const previousStart = shiftDate(selectedDate, -13);
-    const previousEnd = shiftDate(selectedDate, -7);
-    const recentEntries = entries.filter((entry) => entry.date >= recentStart);
-    const previousEntries = entries.filter(
-      (entry) => entry.date >= previousStart && entry.date <= previousEnd
-    );
-
-    if (recentEntries.length && previousEntries.length) {
-      const recentAvg =
-        recentEntries.reduce((sum, entry) => sum + entry.weight, 0) / recentEntries.length;
-      const previousAvg =
-        previousEntries.reduce((sum, entry) => sum + entry.weight, 0) / previousEntries.length;
-      return {
-        status: "data",
-        pct: ((previousAvg - recentAvg) / previousAvg) * 100,
-        change: previousAvg - recentAvg,
-        recentAvg,
-        previousAvg
-      };
-    }
-
-    const first = recentEntries[0] || entries[0];
-    const last = entries.at(-1);
-    const days = Math.max(
-      1,
-      Math.round((parseDateISO(last.date) - parseDateISO(first.date)) / 86400000)
-    );
-    const weeklyPct = ((first.weight - last.weight) / first.weight) * 100 * (7 / days);
-    return {
-      status: "data",
-      pct: weeklyPct,
-      change: first.weight - last.weight,
-      recentAvg: last.weight,
-      previousAvg: first.weight
-    };
-  }
-
-  function weekStats() {
-    const dates = lastNDates(selectedDate, 7);
-    const target = getTargets();
-    const days = dates.map((date) => {
-      const totals = dayTotals(date);
-      return {
-        date,
-        totals,
-        logged: state.meals.some((meal) => meal.date === date)
-      };
-    });
-    const loggedDays = days.filter((day) => day.logged);
-    const avgProtein = loggedDays.length
-      ? loggedDays.reduce((sum, day) => sum + day.totals.protein, 0) / loggedDays.length
-      : 0;
-    const avgKcal = loggedDays.length
-      ? loggedDays.reduce((sum, day) => sum + day.totals.kcal, 0) / loggedDays.length
-      : 0;
-    const proteinRate = target.protein ? avgProtein / target.protein : 0;
-    const calorieRate = target.kcal ? avgKcal / target.kcal : 0;
-    const loggingRate = loggedDays.length / 7;
-    const proteinScore = clamp(proteinRate, 0, 1);
-    const calorieScore = loggedDays.length
-      ? clamp(1 - Math.abs(calorieRate - 1), 0, 1)
-      : 0;
-    const score = Math.round((loggingRate * 45 + proteinScore * 30 + calorieScore * 25));
-    return {
-      dates,
-      days,
-      loggedDays,
-      avgProtein,
-      avgKcal,
-      proteinRate,
-      calorieRate,
-      loggingRate,
-      score,
-      weightTrend: calculateWeightTrend()
-    };
-  }
-
-  function renderTrends() {
-    const stats = weekStats();
-    $("#trend-logged-days").innerHTML = `${stats.loggedDays.length} <small>天</small>`;
-    setValue(
-      "trend-logged-note",
-      stats.loggedDays.length >= 5 ? "记录完整度不错，继续保持" : "建议每周至少记录 5 天"
-    );
-    setValue(
-      "trend-protein-rate",
-      stats.loggedDays.length ? `${Math.round(stats.proteinRate * 100)}%` : "--"
-    );
-    if (stats.weightTrend.status === "data") {
-      const pct = stats.weightTrend.pct;
-      setValue(
-        "trend-weight-loss",
-        `${pct >= 0 ? "−" : "+"}${formatNumber(Math.abs(stats.weightTrend.change), 1)} kg`
-      );
-      setValue(
-        "trend-weight-note",
-        `约 ${formatNumber(Math.abs(pct), 2)}% / 周 · ${pct >= 0 ? "下降" : "上升"}`
-      );
-    } else {
-      setValue("trend-weight-loss", "--");
-      setValue("trend-weight-note", "至少需要两次体重记录");
-    }
-    setValue("trend-score", stats.score ? `${stats.score}` : "--");
-    setValue(
-      "trend-score-note",
-      stats.loggedDays.length
-        ? stats.score >= 80
-          ? "执行稳定，继续积累数据"
-          : "先把记录完整度提上来"
-        : "开始记录后生成执行分"
-    );
-
-    $("#calorie-chart").innerHTML = buildCalorieChart(stats);
-    $("#weight-chart").innerHTML = buildWeightChart();
-    renderInsights(stats);
-  }
-
-  function buildCalorieChart(stats) {
-    const target = getTargets();
-    const width = 620;
-    const height = 210;
-    const left = 34;
-    const right = 8;
-    const top = 8;
-    const bottom = 26;
-    const values = stats.days.map((day) => day.totals.kcal);
-    const maxValue = Math.max(target.kcal, ...values, 100) * 1.12;
-    const bandWidth = (width - left - right) / 7;
-    const barWidth = Math.min(34, bandWidth * 0.54);
-    const targetY = top + (1 - target.kcal / maxValue) * (height - top - bottom);
-    const bars = stats.days
-      .map((day, index) => {
-        const x = left + index * bandWidth + bandWidth / 2;
-        const valueHeight = (day.totals.kcal / maxValue) * (height - top - bottom);
-        const y = height - bottom - valueHeight;
-        const date = parseDateISO(day.date);
-        const label = `${date.getMonth() + 1}/${date.getDate()}`;
-        return `
-          <rect x="${round(x - barWidth / 2, 1)}" y="${round(y, 1)}" width="${barWidth}" height="${round(Math.max(2, valueHeight), 1)}" rx="7" fill="${day.logged ? "#61744d" : "#e2e6dc"}"/>
-          <text x="${round(x, 1)}" y="${height - 8}" text-anchor="middle" class="bar-label">${label}</text>`;
-      })
-      .join("");
-    return `
-      <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="近七天热量柱状图">
-        <line x1="${left}" y1="${height - bottom}" x2="${width - right}" y2="${height - bottom}" stroke="#dfe3da" stroke-width="1"/>
-        <line x1="${left}" y1="${targetY}" x2="${width - right}" y2="${targetY}" stroke="#7d8579" stroke-width="1" stroke-dasharray="4 5"/>
-        <text x="${width - right}" y="${targetY - 5}" text-anchor="end" class="bar-label">目标 ${target.kcal}</text>
-        ${bars}
-      </svg>`;
-  }
-
-  function buildWeightChart() {
-    const entries = [...state.weights]
-      .filter((entry) => entry.date <= selectedDate && entry.date >= shiftDate(selectedDate, -30))
-      .sort((a, b) => a.date.localeCompare(b.date));
-    if (entries.length < 2) {
-      return '<div class="chart-empty">记录至少两次体重，才能看到变化趋势</div>';
-    }
-    const width = 620;
-    const height = 210;
-    const left = 34;
-    const right = 16;
-    const top = 16;
-    const bottom = 28;
-    const values = entries.map((entry) => entry.weight);
-    const goal = Number(state.profile.goalWeight);
-    const min = Math.min(...values, goal) - 0.6;
-    const max = Math.max(...values, goal) + 0.6;
-    const xFor = (index) =>
-      left + (index / Math.max(1, entries.length - 1)) * (width - left - right);
-    const yFor = (value) =>
-      top + ((max - value) / Math.max(0.1, max - min)) * (height - top - bottom);
-    const points = entries
-      .map((entry, index) => `${round(xFor(index), 1)},${round(yFor(entry.weight), 1)}`)
-      .join(" ");
-    const goalY = yFor(goal);
-    const labels = entries
-      .filter((_, index) => index === 0 || index === entries.length - 1)
-      .map((entry, index) => {
-        const actualIndex = index === 0 ? 0 : entries.length - 1;
-        const date = parseDateISO(entry.date);
-        return `<text x="${round(xFor(actualIndex), 1)}" y="${height - 8}" text-anchor="${index === 0 ? "start" : "end"}" class="bar-label">${date.getMonth() + 1}/${date.getDate()}</text>`;
-      })
-      .join("");
-    return `
-      <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="最近体重趋势">
-        <line x1="${left}" y1="${goalY}" x2="${width - right}" y2="${goalY}" stroke="#c3ca69" stroke-width="1.5" stroke-dasharray="5 5"/>
-        <text x="${width - right}" y="${goalY - 6}" text-anchor="end" class="bar-label">目标 ${formatNumber(goal, 1)}kg</text>
-        <polyline points="${points}" fill="none" stroke="#20251f" stroke-width="2.2" vector-effect="non-scaling-stroke"/>
-        ${entries
-          .map(
-            (entry, index) =>
-              `<circle cx="${round(xFor(index), 1)}" cy="${round(yFor(entry.weight), 1)}" r="3.2" fill="#d6e88e" stroke="#20251f" stroke-width="1.5"/>`
-          )
-          .join("")}
+        ${gridLines}
+        <path d="${area}" fill="url(#weightArea)"/>
+        <polyline points="${line}" fill="none" stroke="#3e735b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        ${dots}
         ${labels}
       </svg>`;
   }
 
-  function renderInsights(stats) {
-    const target = getTargets();
-    const insights = [];
-    if (!stats.loggedDays.length) {
-      insights.push({
-        tone: "",
-        icon: "1",
-        title: "先补齐三天饮食记录",
-        copy: "至少记录三天，才能判断蛋白质和热量是否长期偏离。"
-      });
-    } else {
-      if (stats.proteinRate < 0.85) {
-        insights.push({
-          tone: "is-warn",
-          icon: "P",
-          title: `蛋白质平均只达到 ${Math.round(stats.proteinRate * 100)}%`,
-          copy: `平均还差约 ${formatNumber(Math.max(0, target.protein - stats.avgProtein))}g。把蛋白质分配进每一餐，比晚餐集中补齐更容易执行。`
-        });
-      } else {
-        insights.push({
-          tone: "is-good",
-          icon: "P",
-          title: "蛋白质执行稳定",
-          copy: "本周平均蛋白质达标，减脂期优先保住肌肉和饱腹感。"
-        });
-      }
-      if (stats.calorieRate > 1.1) {
-        insights.push({
-          tone: "is-warn",
-          icon: "C",
-          title: "平均热量高于目标",
-          copy: "如果其中几天是聚会，不必补偿；先看接下来一周的平均值。"
-        });
-      } else if (stats.calorieRate < 0.75) {
-        insights.push({
-          tone: "is-warn",
-          icon: "C",
-          title: "可能记录不完整或吃得太少",
-          copy: "确认烹饪油、饮料和加餐是否漏记。长期吃得太少会影响训练和恢复。"
-        });
-      } else {
-        insights.push({
-          tone: "is-good",
-          icon: "C",
-          title: "热量执行在计划附近",
-          copy: "不要为了单日数字临时加练或挨饿，保持下一周稳定更重要。"
-        });
-      }
-    }
-
-    const trend = stats.weightTrend;
-    if (trend.status === "data") {
-      const pct = trend.pct;
-      if (pct > 1.1) {
-        insights.push({
-          tone: "is-warn",
-          icon: "W",
-          title: "体重下降偏快",
-          copy: "若同时出现乏力、睡眠差或训练表现下降，可先把每日碳水增加 0.2g/kg。"
-        });
-      } else if (pct < 0.1) {
-        insights.push({
-          tone: "is-warn",
-          icon: "W",
-          title: "本周体重变化不明显",
-          copy: "先确认记录完整度，再观察一周。连续两周不变时，再把每日碳水减少 0.2g/kg。"
-        });
-      } else {
-        insights.push({
-          tone: "is-good",
-          icon: "W",
-          title: "体重趋势在合理区间",
-          copy: "每周约下降 0.3%–1% 是可持续的速度。继续使用周平均值，不追单日波动。"
-        });
-      }
-    } else {
-      insights.push({
-        tone: "",
-        icon: "W",
-        title: "体重数据还不够",
-        copy: "每周记录 3–7 次，同样时间、同样条件下称重，用平均值判断趋势。"
-      });
-    }
-
-    insights.push({
-      tone: stats.loggedDays.length >= 5 ? "is-good" : "",
-      icon: "✓",
-      title: `本周记录了 ${stats.loggedDays.length} 天`,
-      copy:
-        stats.loggedDays.length >= 5
-          ? "记录完整度可以支撑一次有意义的周复盘。"
-          : "不需要追求每餐零误差，至少把食物种类、份量和高油烹饪记下来。"
-    });
-
-    $("#weekly-insights").innerHTML = insights
-      .map(
-        (insight) => `
-          <div class="insight ${insight.tone}">
-            <div class="insight-icon">${insight.icon}</div>
-            <div><strong>${escapeHTML(insight.title)}</strong><p>${escapeHTML(insight.copy)}</p></div>
-          </div>`
-      )
-      .join("");
+  function renderAll() {
+    renderDashboard();
+    renderMealsView();
+    renderWeightView();
+    renderReport();
   }
 
-  function renderPlan() {
-    const band = getBand();
-    const target = getTargets();
-    const demoCarbs = Math.round(85 * band.carbs);
-    const demoProtein = Math.round(85 * band.protein);
-    const demoFat = Math.round(85 * band.fat);
-    const demoKcal = Math.round(demoCarbs * 4 + demoProtein * 4 + demoFat * 9);
-    const demo = $(".plan-demo");
-    if (demo) {
-      demo.innerHTML = `
-        <span>85kg · ${escapeHTML(band.label)}</span>
-        <div><strong>${demoCarbs}</strong><small>碳水 g</small></div>
-        <div><strong>${demoProtein}</strong><small>蛋白 g</small></div>
-        <div><strong>${demoFat}</strong><small>脂肪 g</small></div>
-        <em>约 ${formatNumber(demoKcal)} kcal · 你的目标 ${target.kcal} kcal</em>`;
-    }
-    $$(".target-table tr").forEach((row) => {
-      row.classList.toggle("is-current", Number(row.dataset.sessions) === band.max);
-    });
+  function setActiveView(name) {
+    $$(".view").forEach(view => view.classList.toggle("active", view.dataset.view === name));
+    $$(".side-nav [data-view-link]").forEach(button => button.classList.toggle("active", button.dataset.viewLink === name));
+    $$(".bottom-nav [data-view-link]").forEach(button => button.classList.toggle("active", button.dataset.viewLink === name));
+    const titles = {
+      dashboard: "今天，也向目标靠近一点",
+      meals: "每一餐，都算数",
+      weight: "看趋势，不被单日波动带偏",
+      report: "复盘一周，调整下一周"
+    };
+    setText("#page-title", titles[name] || titles.dashboard);
+    if (name === "report") renderReport();
+    if (name === "weight") renderWeightView();
+    if (name === "meals") renderMealsView();
+    if (name === "dashboard") renderDashboard();
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function fillSettings() {
-    $("#setting-name").value = state.profile.name || "";
-    $("#setting-height").value = state.profile.height || "";
-    $("#setting-weight").value = state.profile.weight;
-    $("#setting-goal-weight").value = state.profile.goalWeight;
-    $("#setting-sessions").value = state.profile.sessions;
-    $("#sessions-value").textContent = `${state.profile.sessions} 次`;
-    $("#manual-target-toggle").checked = state.profile.targetMode === "manual";
-    $("#manual-target-fields").classList.toggle(
-      "is-visible",
-      state.profile.targetMode === "manual"
-    );
-    const currentTarget = getTargets();
-    $("#manual-carb").value = currentTarget.carbs;
-    $("#manual-protein").value = currentTarget.protein;
-    $("#manual-fat").value = currentTarget.fat;
-    $("#setting-api-endpoint").value = state.settings.endpoint || "";
-    $("#setting-api-upstream").value =
-      state.settings.upstream || "https://api.openai.com/v1/chat/completions";
-    $("#setting-api-model").value = state.settings.model || "";
-    $("#remember-key").checked = Boolean(state.settings.rememberKey);
-    $("#setting-api-key").value = getApiKey();
-    updateSettingsPreview();
-  }
-
-  function updateSettingsPreview() {
-    const weight = Number($("#setting-weight").value) || state.profile.weight;
-    const sessions = Number($("#setting-sessions").value) || 0;
-    const manual = $("#manual-target-toggle").checked;
-    let target = calculateAutoTargets(weight, sessions);
-    if (manual) {
-      const carbs = Number($("#manual-carb").value) || 0;
-      const protein = Number($("#manual-protein").value) || 0;
-      const fat = Number($("#manual-fat").value) || 0;
-      target = {
-        carbs,
-        protein,
-        fat,
-        kcal: Math.round(carbs * 4 + protein * 4 + fat * 9)
-      };
-    }
-    $("#sessions-value").textContent = `${sessions} 次`;
-    setValue("preview-carb", `${Math.round(target.carbs)}g`);
-    setValue("preview-protein", `${Math.round(target.protein)}g`);
-    setValue("preview-fat", `${Math.round(target.fat)}g`);
-    setValue("preview-kcal", `${Math.round(target.kcal)} kcal`);
-  }
-
-  function getApiKey() {
-    if (state.settings.rememberKey) {
-      return safeStorageGet(localStorage, KEY_LOCAL) || "";
-    }
-    return safeStorageGet(sessionStorage, KEY_SESSION) || safeStorageGet(localStorage, KEY_LOCAL) || "";
-  }
-
-  function setApiKey(key) {
-    safeStorageRemove(sessionStorage, KEY_SESSION);
-    safeStorageRemove(localStorage, KEY_LOCAL);
-    if (!key) return;
-    if (state.settings.rememberKey) {
-      safeStorageSet(localStorage, KEY_LOCAL, key);
-    } else {
-      safeStorageSet(sessionStorage, KEY_SESSION, key);
-    }
-  }
-
-  function openModal(html, wide = false) {
-    const backdrop = $("#modal-backdrop");
-    const modal = $("#modal");
-    modal.classList.toggle("is-wide", wide);
-    modal.innerHTML = html;
-    backdrop.hidden = false;
+  function openDialog(id) {
+    const dialog = $(`#${id}`);
+    if (!dialog) return;
+    if (!dialog.open) dialog.showModal();
     document.body.style.overflow = "hidden";
-    const firstInput = modal.querySelector("input:not([type=hidden]), textarea, button");
-    window.setTimeout(() => firstInput?.focus({ preventScroll: true }), 50);
   }
 
-  function closeModal() {
-    $("#modal-backdrop").hidden = true;
-    $("#modal").innerHTML = "";
-    document.body.style.overflow = "";
-    draftMeal = null;
+  function closeDialog(id) {
+    const dialog = $(`#${id}`);
+    if (dialog?.open) dialog.close();
+    if (!$$("dialog[open]").length) document.body.style.overflow = "";
   }
 
-  function modalHeader(title, subtitle = "") {
-    return `
-      <div class="modal-header">
-        <div>
-          <span class="eyebrow">MEAL LOG</span>
-          <h2 id="modal-title">${escapeHTML(title)}</h2>
-          ${subtitle ? `<p>${escapeHTML(subtitle)}</p>` : ""}
-        </div>
-        <button class="modal-close" type="button" data-close-modal aria-label="关闭">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
-        </button>
-      </div>`;
-  }
-
-  function renderPhotoSlot(kind, title, hint, required = false) {
-    const photo = draftMeal.photos?.[kind];
-    return `
-      <label class="photo-slot photo-slot-${kind} ${photo ? "is-filled" : ""}" data-photo-slot="${kind}">
-        <input class="meal-photo-input" data-photo-kind="${kind}" type="file" accept="image/*" capture="environment" aria-label="${escapeHTML(title)}">
-        ${
-          photo
-            ? `<img class="photo-slot-image" src="${photo}" alt="${escapeHTML(title)}预览">`
-            : `<span class="photo-slot-empty">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3l1.5-2h7L17 7h3v12H4V7Z"/><circle cx="12" cy="13" r="3.5"/></svg>
-              </span>`
-        }
-        <span class="photo-slot-copy">
-          <strong>${escapeHTML(title)}${required ? "<i>必选</i>" : ""}</strong>
-          <small>${escapeHTML(hint)}</small>
-        </span>
-        ${photo ? '<em class="photo-retake">重拍</em>' : ""}
-      </label>`;
-  }
-
-  function openMealModal(type = "lunch", editId = null) {
-    const existing = editId ? state.meals.find((meal) => meal.id === editId) : null;
-    const existingPhotos = existing?.photos || {};
-    draftMeal = {
-      editId,
-      date: selectedDate,
-      type: existing?.type || type,
-      note: existing?.note || "",
-      rawText: existing?.rawText || "",
-      photo: existing?.photo || existingPhotos.tray || null,
-      photos: {
-        tray: existingPhotos.tray || existing?.photo || null,
-        staple: existingPhotos.staple || null,
-        protein: existingPhotos.protein || null
-      },
-      cafeteria: {
-        plateSize: existing?.cafeteria?.plateSize || "standard",
-        staplePortion: existing?.cafeteria?.staplePortion || "medium",
-        oilLevel: existing?.cafeteria?.oilLevel || "normal",
-        proteinType: existing?.cafeteria?.proteinType || "mixed",
-        dishes: existing?.cafeteria?.dishes || ""
-      },
-      items: existing?.items ? existing.items.map((item) => ({ ...item })) : [],
-      aiMessage: "",
-      aiError: false
+  function emptyDraft() {
+    return {
+      id: null,
+      date: state.selectedMealDate || localDateString(),
+      type: inferMealType(),
+      description: "",
+      title: "",
+      images: [],
+      items: [],
+      aiFeedback: "",
+      assumptions: [],
+      createdAt: new Date().toISOString()
     };
-    openModal(
-      `
-      ${modalHeader(existing ? "编辑这一餐" : "记录食堂一餐", "拍托盘全景，再补主食和蛋白质近照。照片、菜品名与份量线索越完整，估算越准。")}
-      <div class="modal-body">
-        <div class="meal-type-tabs">
-          ${MEAL_TYPES.map(
-            (item) =>
-              `<button type="button" data-draft-type="${item.id}" class="${draftMeal.type === item.id ? "is-active" : ""}">${item.label}</button>`
-          ).join("")}
-        </div>
-        <div class="meal-entry-grid cafeteria-entry-grid">
-          <div>
-            <label class="field">
-              <span>菜品名或食物份量（可选）</span>
-              <textarea id="meal-text" placeholder="例如：番茄炒蛋、青椒肉丝，米饭一碗，青菜偏油">${escapeHTML(draftMeal.rawText)}</textarea>
-            </label>
-            <div class="parse-row" style="margin-top:8px">
-              <button class="primary-button" id="parse-meal" type="button">按文字计算</button>
-              <button class="secondary-button" id="clear-items" type="button">清空结果</button>
-            </div>
-            <p class="parser-hint">如果知道食堂菜品名，直接写出来会明显提高准确度；没有写克数时会按食堂常见份量估算。</p>
-          </div>
-          <div class="cafeteria-photo-workbench">
-            <div class="photo-workbench-head">
-              <span>食堂拍照识别</span>
-              <em>建议拍 2–3 张</em>
-            </div>
-            <div class="cafeteria-photo-grid">
-              ${renderPhotoSlot("tray", "托盘全景", "看清所有菜品和餐盘边界", true)}
-              ${renderPhotoSlot("staple", "主食近照", "米饭、面条或馒头")}
-              ${renderPhotoSlot("protein", "蛋白质近照", "肉、蛋、鱼或豆制品")}
-            </div>
-          </div>
-        </div>
-
-        <section class="cafeteria-calibration">
-          <div class="calibration-heading">
-            <div>
-              <strong>食堂估算校准</strong>
-              <span>点选真实情况，AI 会据此校正份量与隐藏油脂</span>
-            </div>
-            <em>更准</em>
-          </div>
-          <div class="calibration-grid">
-            <label class="field">
-              <span>餐盘 / 餐盒</span>
-              <select id="cal-plate">
-                <option value="standard" ${draftMeal.cafeteria.plateSize === "standard" ? "selected" : ""}>标准食堂餐盘</option>
-                <option value="small" ${draftMeal.cafeteria.plateSize === "small" ? "selected" : ""}>小餐盘 / 小碗菜</option>
-                <option value="takeaway" ${draftMeal.cafeteria.plateSize === "takeaway" ? "selected" : ""}>长方形打包盒</option>
-                <option value="unknown" ${draftMeal.cafeteria.plateSize === "unknown" ? "selected" : ""}>不确定</option>
-              </select>
-            </label>
-            <label class="field">
-              <span>主食份量</span>
-              <select id="cal-staple">
-                <option value="small" ${draftMeal.cafeteria.staplePortion === "small" ? "selected" : ""}>半碗 / 约 100g</option>
-                <option value="medium" ${draftMeal.cafeteria.staplePortion === "medium" ? "selected" : ""}>一碗 / 约 150g</option>
-                <option value="large" ${draftMeal.cafeteria.staplePortion === "large" ? "selected" : ""}>大碗 / 约 250g</option>
-                <option value="double" ${draftMeal.cafeteria.staplePortion === "double" ? "selected" : ""}>两碗 / 约 300g</option>
-                <option value="none" ${draftMeal.cafeteria.staplePortion === "none" ? "selected" : ""}>这餐没有主食</option>
-              </select>
-            </label>
-            <label class="field">
-              <span>主要蛋白质</span>
-              <select id="cal-protein">
-                <option value="mixed" ${draftMeal.cafeteria.proteinType === "mixed" ? "selected" : ""}>混合 / 不确定</option>
-                <option value="chicken" ${draftMeal.cafeteria.proteinType === "chicken" ? "selected" : ""}>鸡肉</option>
-                <option value="pork" ${draftMeal.cafeteria.proteinType === "pork" ? "selected" : ""}>猪肉</option>
-                <option value="beef" ${draftMeal.cafeteria.proteinType === "beef" ? "selected" : ""}>牛肉</option>
-                <option value="fish" ${draftMeal.cafeteria.proteinType === "fish" ? "selected" : ""}>鱼虾</option>
-                <option value="egg" ${draftMeal.cafeteria.proteinType === "egg" ? "selected" : ""}>鸡蛋</option>
-                <option value="tofu" ${draftMeal.cafeteria.proteinType === "tofu" ? "selected" : ""}>豆腐 / 豆制品</option>
-              </select>
-            </label>
-            <label class="field">
-              <span>油量</span>
-              <select id="cal-oil">
-                <option value="light" ${draftMeal.cafeteria.oilLevel === "light" ? "selected" : ""}>清爽 / 水煮清蒸</option>
-                <option value="normal" ${draftMeal.cafeteria.oilLevel === "normal" ? "selected" : ""}>普通食堂炒菜</option>
-                <option value="oily" ${draftMeal.cafeteria.oilLevel === "oily" ? "selected" : ""}>明显偏油 / 盘底有油</option>
-                <option value="very" ${draftMeal.cafeteria.oilLevel === "very" ? "selected" : ""}>很多油 / 油炸红烧</option>
-              </select>
-            </label>
-          </div>
-          <label class="field calibration-dishes">
-            <span>菜品名（可选，但很有帮助）</span>
-            <input id="cal-dishes" type="text" value="${escapeHTML(draftMeal.cafeteria.dishes)}" placeholder="如：番茄炒蛋、青椒肉丝、炒青菜">
-          </label>
-          <div class="quick-dish-wrap">
-            <span>食堂常见菜，点一下加入：</span>
-            <div class="quick-dish-list">
-              ${[
-                "米饭",
-                "馒头",
-                "面条",
-                "鸡腿肉",
-                "番茄炒蛋",
-                "青椒肉丝",
-                "清炒时蔬",
-                "土豆丝",
-                "麻婆豆腐",
-                "红烧肉"
-              ]
-                .map(
-                  (name) =>
-                    `<button type="button" data-quick-food="${escapeHTML(name)}">${escapeHTML(name)}</button>`
-                )
-                .join("")}
-            </div>
-          </div>
-          <div class="ai-analyze-row">
-            <button class="primary-button ai-analyze-button" id="analyze-photo" type="button">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.2 4.1L17 9l-3.8 1.9L12 15l-1.2-4.1L7 9l3.8-1.9L12 3Zm6 10 .7 2.3L21 16l-2.3.7L18 19l-.7-2.3L15 16l2.3-.7L18 13Z"/></svg>
-              AI 分析食堂餐盘
-            </button>
-            <span>照片只在分析时发送，不会上传到数据服务器</span>
-          </div>
-          <div id="ai-status"></div>
-          <div class="inline-ai-config" id="inline-ai-config" hidden>
-            <div>
-              <strong>首次使用照片识别</strong>
-              <p>填写你自己的视觉模型 API Key。密钥仅用于当前浏览器会话，不会写入饮食记录或导出的数据。</p>
-            </div>
-            <label class="field">
-              <span>API Key</span>
-              <input id="inline-api-key" type="password" autocomplete="off" placeholder="sk-...">
-            </label>
-            <div class="inline-ai-actions">
-              <button class="primary-button" id="inline-save-key" type="button">保存并分析</button>
-              <button class="secondary-button" id="use-quick-estimate" type="button">先用食堂快速选择</button>
-            </div>
-            <small>默认通过本页的安全代理调用兼容视觉模型；也可在“参数设置”中更换接口和模型。</small>
-          </div>
-        </section>
-
-        <div class="result-heading">
-          <strong>营养素估算</strong>
-          <span>保存前请按食堂实际份量修正</span>
-        </div>
-        <div id="draft-items" class="parsed-items"></div>
-        <div id="entry-total" class="entry-total"></div>
-      </div>
-      <div class="modal-footer">
-        <div class="modal-actions-split">
-          <span class="parser-hint">${draftMeal.items.length ? "修改数值后会自动重算" : "尚未添加食物"}</span>
-          <div class="button-row" style="margin:0">
-            <button class="secondary-button" type="button" data-close-modal>取消</button>
-            <button class="primary-button" id="save-meal" type="button">${existing ? "保存修改" : "保存这一餐"}</button>
-          </div>
-        </div>
-      </div>`,
-      true
-    );
-    renderDraftItems();
-    bindMealModalEvents();
   }
 
-  function renderDraftItems() {
-    if (!draftMeal) return;
-    const container = $("#draft-items");
-    if (!container) return;
-    if (!draftMeal.items.length) {
-      container.innerHTML =
-        '<div class="parsed-empty">输入食物后点击“按文字计算”，或上传照片进行 AI 估算。<br>所有结果都可以在保存前修改。</div>';
+  function inferMealType() {
+    const hour = new Date().getHours();
+    if (hour < 10) return "breakfast";
+    if (hour < 15) return "lunch";
+    if (hour < 21) return "dinner";
+    return "snack";
+  }
+
+  function openMealDialog(date = null, meal = null) {
+    if (meal) {
+      draftMeal = JSON.parse(JSON.stringify(meal));
     } else {
-      container.innerHTML = draftMeal.items
-        .map(
-          (item, index) => `
-          <div class="parsed-item-card">
-            <div class="parsed-row">
-              <label><input data-item-index="${index}" data-field="name" value="${escapeHTML(item.name)}" aria-label="食物名称"></label>
-              <label><input data-item-index="${index}" data-field="grams" type="number" min="0" step="0.1" value="${item.grams}" aria-label="克数"></label>
-              <label><input data-item-index="${index}" data-field="carbs" type="number" min="0" step="0.1" value="${item.carbs}" aria-label="碳水"></label>
-              <label><input data-item-index="${index}" data-field="protein" type="number" min="0" step="0.1" value="${item.protein}" aria-label="蛋白质"></label>
-              <label><input data-item-index="${index}" data-field="fat" type="number" min="0" step="0.1" value="${item.fat}" aria-label="脂肪"></label>
-              <label><input data-item-index="${index}" data-field="kcal" type="number" min="0" step="1" value="${item.kcal}" aria-label="热量"></label>
-              <button class="remove-item" type="button" data-remove-item="${index}" aria-label="删除">×</button>
-            </div>
-            ${
-              item.rangeNote || item.confidence != null
-                ? `<div class="parsed-range-note">
-                    ${item.confidence != null ? `<b>${Math.round(Number(item.confidence) * 100)}%</b>` : ""}
-                    <span>${escapeHTML(item.rangeNote || "手动校正后可提高后续估算准确度")}</span>
-                  </div>`
-                : ""
-            }
-          </div>`
-        )
-        .join("");
+      draftMeal = emptyDraft();
+      if (date) draftMeal.date = date;
     }
-    renderDraftTotal();
+    $("#meal-date").value = draftMeal.date;
+    $("#meal-type").value = draftMeal.type;
+    $("#meal-description").value = draftMeal.description || "";
+    $("#meal-form-message").textContent = "";
+    $("#meal-form-message").className = "form-message";
+    $("#analysis-editor").hidden = !draftMeal.items.length;
+    $("#analysis-state").hidden = true;
+    $("#meal-dialog .modal-head h2").textContent = meal ? "编辑这一餐" : "记录一餐";
+    renderPhotoPreviews();
+    renderDraftItems();
+    updateDraftTotals();
+    openDialog("meal-dialog");
   }
 
-  function renderDraftTotal() {
-    if (!draftMeal) return;
-    const total = normalizeTotals(totalItems(draftMeal.items));
-    const container = $("#entry-total");
-    if (container) {
-      container.innerHTML = `
-        <span>碳水 <strong>${formatNumber(total.carbs, 1)}g</strong></span>
-        <span>蛋白质 <strong>${formatNumber(total.protein, 1)}g</strong></span>
-        <span>脂肪 <strong>${formatNumber(total.fat, 1)}g</strong></span>
-        <span>合计 <strong>${formatNumber(total.kcal)} kcal</strong></span>`;
-    }
+  function renderPhotoPreviews() {
+    $("#photo-previews").innerHTML = draftMeal.images.map((image, index) => `
+      <div class="photo-preview">
+        <img src="${image}" alt="餐食照片 ${index + 1}">
+        <button type="button" data-remove-photo="${index}" aria-label="移除照片">×</button>
+      </div>`).join("");
+    $("#photo-dropzone").style.display = draftMeal.images.length >= 4 ? "none" : "";
   }
 
-  function syncDraftText() {
-    if (!draftMeal) return;
-    draftMeal.rawText = $("#meal-text")?.value || "";
-  }
-
-  function bindMealModalEvents() {
-    $$("[data-draft-type]").forEach((button) => {
-      button.addEventListener("click", () => {
-        draftMeal.type = button.dataset.draftType;
-        $$("[data-draft-type]").forEach((item) => {
-          item.classList.toggle("is-active", item === button);
-        });
-      });
-    });
-
-    $("#parse-meal").addEventListener("click", () => {
-      syncDraftText();
-      const parsed = parseFoodText(draftMeal.rawText);
-      draftMeal.items = parsed;
-      renderDraftItems();
-      if (!parsed.length) {
-        setAiStatus("没有识别到食物。试试写得更具体，例如“鸡胸肉 200g、米饭 150g”。", true);
-      } else {
-        setAiStatus(`已按文字计算 ${parsed.length} 种食物，请核对份量。`);
-      }
-    });
-
-    $("#clear-items").addEventListener("click", () => {
-      draftMeal.items = [];
-      renderDraftItems();
-      setAiStatus("");
-    });
-
-    $(".cafeteria-photo-grid").addEventListener("change", async (event) => {
-      const input = event.target.closest(".meal-photo-input");
-      if (!input) return;
-      const file = event.target.files?.[0];
-      if (!file) return;
-      const kind = input.dataset.photoKind;
-      try {
-        const compressed = await compressImage(file);
-        draftMeal.photos[kind] = compressed;
-        if (kind === "tray") draftMeal.photo = compressed;
-        const meta = {
-          tray: ["托盘全景", "看清所有菜品和餐盘边界", true],
-          staple: ["主食近照", "米饭、面条或馒头", false],
-          protein: ["蛋白质近照", "肉、蛋、鱼或豆制品", false]
-        }[kind];
-        input.closest(".photo-slot").outerHTML = renderPhotoSlot(kind, ...meta);
-        const count = Object.values(draftMeal.photos).filter(Boolean).length;
-        setAiStatus(
-          count >= 2
-            ? "照片已准备好。补充菜品名和油量后，点击“AI 分析食堂餐盘”。"
-            : "已加入 1 张照片。再拍一张主食或蛋白质近照会更准确。"
-        );
-      } catch (error) {
-        setAiStatus("图片读取失败，请换一张图片重试。", true);
-      }
-    });
-
-    const syncCafeteria = () => {
-      if (!draftMeal) return;
-      draftMeal.cafeteria = {
-        plateSize: $("#cal-plate")?.value || "standard",
-        staplePortion: $("#cal-staple")?.value || "medium",
-        oilLevel: $("#cal-oil")?.value || "normal",
-        proteinType: $("#cal-protein")?.value || "mixed",
-        dishes: $("#cal-dishes")?.value.trim() || ""
-      };
-    };
-    ["cal-plate", "cal-staple", "cal-oil", "cal-protein", "cal-dishes"].forEach((id) => {
-      $(`#${id}`)?.addEventListener("change", syncCafeteria);
-      $(`#${id}`)?.addEventListener("input", syncCafeteria);
-    });
-
-    $(".quick-dish-list").addEventListener("click", (event) => {
-      const button = event.target.closest("[data-quick-food]");
-      if (!button) return;
-      const food = FOODS.find((item) => item.name === button.dataset.quickFood);
-      if (!food) return;
-      const grams = food.serving;
-      const macros = macrosForGrams(food, grams);
-      draftMeal.items.push({
-        id: uid(),
-        name: food.name,
-        grams,
-        ...macros,
-        originalGrams: grams,
-        confidence: 1,
-        source: "cafeteria-quick",
-        userAdjusted: false,
-        note: food.note || ""
-      });
-      renderDraftItems();
-      button.classList.add("is-added");
-      window.setTimeout(() => button.classList.remove("is-added"), 700);
-      setAiStatus(`已加入 ${food.name}，默认一份 ${grams}g，可在下方修改克数。`);
-    });
-
-    $("#analyze-photo").addEventListener("click", async (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      const photos = Object.values(draftMeal.photos).filter(Boolean);
-      if (!photos.length) {
-        setAiStatus("请先拍一张托盘全景。", true);
-        return;
-      }
-      const isLocalProxy = state.settings.endpoint.trim().startsWith("/");
-      if (!isLocalProxy && !getApiKey()) {
-        $("#inline-ai-config").hidden = false;
-        setAiStatus("还差一步：填写一次 API Key 后即可自动分析。", true);
-        $("#inline-ai-config").scrollIntoView({ behavior: "smooth", block: "center" });
-        return;
-      }
-      if (isLocalProxy && location.protocol === "file:") {
-        setAiStatus("照片识别需要通过公网链接或本地服务打开。请从分享链接进入本页。", true);
-        return;
-      }
-      const button = $("#analyze-photo");
-      const originalButton = button.innerHTML;
-      button.disabled = true;
-      button.innerHTML = "<span class=\"ai-spinner\"></span> 正在分析托盘、份量和隐藏油脂…";
-      setAiStatus("通常会需要 5–20 秒。请不要关闭页面。");
-      try {
-        syncDraftText();
-        syncCafeteria();
-        const result = await analyzeMealPhoto(
-          photos,
-          draftMeal.rawText,
-          draftMeal.cafeteria
-        );
-        draftMeal.items = result.items;
-        renderDraftItems();
-        setAiStatus(
-          result.note
-            ? `识别完成（综合置信度 ${Math.round(result.overallConfidence * 100)}%）：${result.note}`
-            : "识别完成。照片无法判断的部分，请务必手动校正。"
-        );
-      } catch (error) {
-        setAiStatus(error.message || "AI 识别失败，请检查接口和网络。", true);
-        if (/api key|openai_api_key|密钥|配置/i.test(error.message || "")) {
-          $("#inline-ai-config").hidden = false;
-        }
-      } finally {
-        button.disabled = false;
-        button.innerHTML = originalButton.replace("AI 分析食堂餐盘", "重新分析食堂餐盘");
-      }
-    });
-
-    $("#inline-save-key").addEventListener("click", () => {
-      const key = $("#inline-api-key").value.trim();
-      if (!key) {
-        toast("请填写 API Key", "error");
-        return;
-      }
-      if (!state.settings.endpoint) state.settings.endpoint = "/api/analyze";
-      if (!state.settings.model) state.settings.model = "gpt-4.1-mini";
-      state.settings.rememberKey = false;
-      setApiKey(key);
-      saveState();
-      $("#inline-ai-config").hidden = true;
-      setAiStatus("密钥已保存到当前会话，正在开始分析…");
-      $("#analyze-photo").click();
-    });
-
-    $("#use-quick-estimate").addEventListener("click", () => {
-      $("#inline-ai-config").hidden = true;
-      $(".quick-dish-list").scrollIntoView({ behavior: "smooth", block: "center" });
-      setAiStatus("已切换为食堂快速选择：点选菜品后核对克数，不需要 API Key。");
-    });
-
-    $("#draft-items").addEventListener("input", (event) => {
-      const input = event.target.closest("input[data-item-index]");
-      if (!input) return;
-      const index = Number(input.dataset.itemIndex);
-      const field = input.dataset.field;
-      const item = draftMeal.items[index];
-      if (!item) return;
-      if (field === "name") item.name = input.value;
-      else {
-        item[field] = Math.max(0, Number(input.value) || 0);
-        if (field === "grams") item.userAdjusted = true;
-      }
-      if (["carbs", "protein", "fat"].includes(field) && !item.kcal) {
-        item.kcal = round(item.carbs * 4 + item.protein * 4 + item.fat * 9, 0);
-      }
-      renderDraftTotal();
-    });
-
-    $("#draft-items").addEventListener("click", (event) => {
-      const button = event.target.closest("[data-remove-item]");
-      if (!button) return;
-      draftMeal.items.splice(Number(button.dataset.removeItem), 1);
-      renderDraftItems();
-    });
-
-    $("#save-meal").addEventListener("click", saveDraftMeal);
-  }
-
-  function setAiStatus(message, isError = false) {
-    const container = $("#ai-status");
-    if (!container) return;
-    container.innerHTML = message
-      ? `<div class="ai-status${isError ? " is-error" : ""}">${escapeHTML(message)}</div>`
-      : "";
-  }
-
-  function recordFoodCalibrations(items) {
-    if (!Array.isArray(state.calibrations)) state.calibrations = [];
-    items.forEach((item) => {
-      if (
-        !String(item.source || "").includes("photo") ||
-        !item.userAdjusted ||
-        !item.originalGrams ||
-        item.originalGrams <= 0
-      ) {
-        return;
-      }
-      state.calibrations.push({
-        name: item.name,
-        grams: item.grams,
-        originalGrams: item.originalGrams,
-        factor: round(item.grams / item.originalGrams, 2),
-        date: draftMeal.date,
-        createdAt: new Date().toISOString()
-      });
-    });
-    state.calibrations = state.calibrations.slice(-80);
-  }
-
-  function saveDraftMeal() {
-    if (!draftMeal) return;
-    syncDraftText();
-    if (!draftMeal.items.length) {
-      setAiStatus("至少添加一种食物后再保存。", true);
+  async function handleFiles(fileList) {
+    const files = Array.from(fileList || []).filter(file => file.type.startsWith("image/"));
+    const remaining = Math.max(0, 4 - draftMeal.images.length);
+    if (!files.length) return;
+    if (!remaining) {
+      showToast("每餐最多上传 4 张照片。");
       return;
     }
-    const cleanItems = draftMeal.items.map((item) => ({
-      id: item.id || uid(),
-      name: String(item.name || "未命名食物").trim(),
-      grams: round(Number(item.grams) || 0, 1),
-      carbs: round(Number(item.carbs) || 0, 1),
-      protein: round(Number(item.protein) || 0, 1),
-      fat: round(Number(item.fat) || 0, 1),
-      kcal: round(Number(item.kcal) || 0, 0),
-      confidence: item.confidence ?? null,
-      source: item.source || "manual",
-      originalGrams: item.originalGrams ?? null,
-      userAdjusted: Boolean(item.userAdjusted),
-      rangeNote: item.rangeNote || "",
-      note: item.note || ""
-    }));
-    const totals = normalizeTotals(totalItems(cleanItems));
-    const now = new Date();
-    const time = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-    const payload = {
-      id: draftMeal.editId || uid(),
-      date: draftMeal.date,
-      type: draftMeal.type,
-      note: draftMeal.rawText.trim(),
-      rawText: draftMeal.rawText.trim(),
-      photo: draftMeal.photo || null,
-      photos: { ...draftMeal.photos },
-      cafeteria: { ...draftMeal.cafeteria },
-      items: cleanItems,
-      totals,
-      time,
-      createdAt:
-        state.meals.find((meal) => meal.id === draftMeal.editId)?.createdAt ||
-        new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    recordFoodCalibrations(cleanItems);
-    const wasEdit = Boolean(draftMeal.editId);
-    if (wasEdit) {
-      const index = state.meals.findIndex((meal) => meal.id === draftMeal.editId);
-      if (index >= 0) state.meals[index] = payload;
-    } else {
-      state.meals.push(payload);
+    $("#meal-form-message").textContent = "正在压缩照片…";
+    for (const file of files.slice(0, remaining)) {
+      try {
+        draftMeal.images.push(await compressImage(file));
+      } catch (error) {
+        console.error(error);
+      }
     }
-    saveState();
-    closeModal();
-    renderToday();
-    toast(wasEdit ? "这一餐已更新" : "这一餐已记下");
+    $("#meal-form-message").textContent = "";
+    renderPhotoPreviews();
   }
 
-  async function compressImage(file) {
-    const dataUrl = await readFileAsDataURL(file);
-    const image = await loadImage(dataUrl);
-    const maxSide = 1000;
-    const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(image.width * scale));
-    canvas.height = Math.max(1, Math.round(image.height * scale));
-    const context = canvas.getContext("2d");
-    context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL("image/jpeg", 0.78);
-  }
-
-  function readFileAsDataURL(file) {
+  function compressImage(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = reject;
+      reader.onerror = () => reject(reader.error);
+      reader.onload = () => {
+        const image = new Image();
+        image.onerror = () => reject(new Error("图片无法读取"));
+        image.onload = () => {
+          const maxSide = 1500;
+          const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(1, Math.round(image.width * scale));
+          canvas.height = Math.max(1, Math.round(image.height * scale));
+          const context = canvas.getContext("2d");
+          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/jpeg", 0.82));
+        };
+        image.src = reader.result;
+      };
       reader.readAsDataURL(file);
     });
   }
 
-  function loadImage(src) {
-    return new Promise((resolve, reject) => {
-      const image = new Image();
-      image.onload = () => resolve(image);
-      image.onerror = reject;
-      image.src = src;
-    });
-  }
-
-  function median(values) {
-    if (!values.length) return null;
-    const sorted = [...values].sort((a, b) => a - b);
-    const middle = Math.floor(sorted.length / 2);
-    return sorted.length % 2
-      ? sorted[middle]
-      : (sorted[middle - 1] + sorted[middle]) / 2;
-  }
-
-  function getCalibrationFactor(foodName) {
-    const normalized = String(foodName || "")
-      .replace(/\s+/g, "")
-      .replace(/[（）()]/g, "");
-    const factors = (state.calibrations || [])
-      .filter((entry) => {
-        const entryName = String(entry.name || "")
-          .replace(/\s+/g, "")
-          .replace(/[（）()]/g, "");
-        return entryName === normalized || entryName.includes(normalized) || normalized.includes(entryName);
-      })
-      .slice(-8)
-      .map((entry) => Number(entry.factor))
-      .filter((factor) => Number.isFinite(factor) && factor > 0);
-    return factors.length >= 2 ? clamp(median(factors), 0.65, 1.55) : 1;
-  }
-
-  async function analyzeMealPhoto(photoDataUrls, textHint = "", cafeteria = {}) {
-    const endpoint = state.settings.endpoint.trim();
-    const model = state.settings.model.trim();
-    const key = getApiKey().trim();
-    const isLocalProxy = endpoint.startsWith("/");
-    if (!endpoint || !model) throw new Error("照片识别设置不完整，请先在设置页填写。");
-    if (isLocalProxy && location.protocol === "file:") {
-      throw new Error("照片识别需要通过本地服务启动。请运行 start-server.ps1 后打开 http://127.0.0.1:4173。");
-    }
-    if (!isLocalProxy && !key) throw new Error("直连接口需要填写 API Key。");
-
-    const plateLabels = {
-      standard: "标准食堂餐盘，常见约 30×40cm",
-      small: "小餐盘或小碗菜，份量偏小",
-      takeaway: "长方形一次性打包盒",
-      unknown: "餐盘尺寸不确定"
+  function defaultFoodItem(data = {}) {
+    return {
+      name: data.name || "",
+      portion: data.portion || "",
+      protein: round(num(data.protein), 1),
+      carbs: round(num(data.carbs), 1),
+      fat: round(num(data.fat), 1)
     };
-    const stapleLabels = {
-      small: "半碗，熟主食约 100g",
-      medium: "一碗，熟主食约 150g",
-      large: "大碗，熟主食约 250g",
-      double: "两碗，熟主食约 300g",
-      none: "本餐没有主食"
-    };
-    const oilLabels = {
-      light: "清爽、水煮或清蒸，额外油很少",
-      normal: "普通食堂炒菜，中等油量",
-      oily: "明显偏油，盘底可见油脂",
-      very: "很多油、油炸或浓油红烧"
-    };
-    const proteinLabels = {
-      mixed: "混合或不确定",
-      chicken: "鸡肉",
-      pork: "猪肉",
-      beef: "牛肉",
-      fish: "鱼虾",
-      egg: "鸡蛋",
-      tofu: "豆腐或豆制品"
-    };
-    const calibrationHints = (state.calibrations || [])
-      .slice(-12)
-      .map(
-        (entry) =>
-          `${entry.name}: AI 原估 ${entry.originalGrams}g，用户按实际改为 ${entry.grams}g`
-      )
-      .join("；");
-
-    const prompt = `请分析照片中的中国学校食堂餐食，估算可食重量和三大营养素。照片可能包含：托盘全景、主食近照、蛋白质近照。只返回合法 JSON，不要 Markdown。
-
-输出结构：
-{"items":[{"name":"菜品中文名","grams":150,"gramsMin":120,"gramsMax":180,"carbs":42,"protein":3.9,"fat":0.5,"calories":195,"confidence":0.8,"portionBasis":"餐盘格大小或主食碗参考","note":"骨头、汤汁、油脂等说明"}],"overallConfidence":0.75,"note":"最需要用户校正的内容"}
-
-用户提供的校准信息：
-- 餐盘：${plateLabels[cafeteria.plateSize] || plateLabels.unknown}
-- 主食：${stapleLabels[cafeteria.staplePortion] || stapleLabels.medium}
-- 主要蛋白质：${proteinLabels[cafeteria.proteinType] || proteinLabels.mixed}
-- 油量：${oilLabels[cafeteria.oilLevel] || oilLabels.normal}
-- 菜品名：${cafeteria.dishes || "未填写"}
-- 用户补充：${textHint || "无"}
-${calibrationHints ? `- 这个用户过去的份量修正：${calibrationHints}` : ""}
-
-估算规则：
-1. 把米饭、馒头、面条等主食单独列出，使用用户选择的主食份量作为强参考。
-2. 肉类列出不含骨头的可食重量；普通食堂单份肉菜通常约 60–140g，不要因为餐盘大就盲目放大。
-3. 分别识别每道菜，不要把它写成一份混合“套餐”。
-4. 食堂炒菜必须考虑烹饪油、糖和勾芡。油量选择“偏油/很多油”时，在蔬菜和肉菜中计入额外脂肪。
-5. 番茄炒蛋、青椒肉丝、麻婆豆腐、红烧肉、土豆丝、炒青菜等食堂常见菜，优先使用菜品本身的实际配方，不要拆成生食材重复计数。
-6. grams 是熟重。carbs、protein、fat 单位都是克，calories 是千卡。
-7. 不确定时给 gramsMin/gramsMax 区间并降低 confidence，不能编造精确重量。
-8. 最多 12 项；如果照片看不出某种食物，不要凭空添加。`;
-
-    const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 75000);
-    try {
-      const imageLabels = ["托盘全景", "主食近照", "蛋白质近照"];
-      const imageContent = photoDataUrls.flatMap((dataUrl, index) => [
-        { type: "text", text: `照片 ${index + 1}：${imageLabels[index] || "补充照片"}` },
-        { type: "image_url", image_url: { url: dataUrl, detail: "high" } }
-      ]);
-      const response = await fetch(endpoint, {
-        method: "POST",
-        signal: controller.signal,
-        headers: {
-          "Content-Type": "application/json",
-          ...(isLocalProxy
-            ? {
-                "X-Shike-Upstream":
-                  state.settings.upstream || "https://api.openai.com/v1/chat/completions"
-              }
-            : {}),
-          ...(key ? { Authorization: `Bearer ${key}` } : {})
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            {
-              role: "system",
-              content:
-                "你是专门估算中国学校食堂餐食的营养师。你只返回合法 JSON，不提供医疗诊断。优先保证重量区间、主食份量、可见油脂和复合菜品估算的准确性。"
-            },
-            {
-              role: "user",
-              content: [
-                { type: "text", text: prompt },
-                ...imageContent
-              ]
-            }
-          ],
-          temperature: 0.1,
-          max_tokens: 1800
-        })
-      });
-
-      const data = await response.json().catch(() => null);
-      if (!response.ok) {
-        const message =
-          data?.error?.message || data?.message || `接口返回 ${response.status}`;
-        throw new Error(`照片分析失败：${message}`);
-      }
-      const raw =
-        data?.choices?.[0]?.message?.content ||
-        data?.output_text ||
-        data?.response ||
-        "";
-      const text = Array.isArray(raw)
-        ? raw.map((part) => part.text || part.content || "").join("")
-        : String(raw);
-      const parsed = parseAIJson(text);
-      if (!parsed || !Array.isArray(parsed.items)) {
-        throw new Error("模型返回的内容无法解析，请重试或换一个视觉模型。");
-      }
-      const items = parsed.items
-        .slice(0, 12)
-        .map((item) => {
-          const name = String(item.name || "未识别食物");
-          const aiGrams = round(Math.max(0, Number(item.grams) || 0), 1);
-          const factor = getCalibrationFactor(name);
-          const grams = round(aiGrams * factor, 1);
-          const carbs = Math.max(0, Number(item.carbs) || 0) * factor;
-          const protein = Math.max(0, Number(item.protein) || 0) * factor;
-          const fat = Math.max(0, Number(item.fat) || 0) * factor;
-          const rawCalories = Number(item.calories ?? item.kcal);
-          const kcal =
-            rawCalories > 0
-              ? rawCalories * factor
-              : carbs * 4 + protein * 4 + fat * 9;
-          const min = Number(item.gramsMin);
-          const max = Number(item.gramsMax);
-          const rangeNote =
-            Number.isFinite(min) && Number.isFinite(max)
-              ? `照片区间约 ${Math.round(min * factor)}–${Math.round(max * factor)}g`
-              : "";
-          return {
-            id: uid(),
-            name,
-            grams,
-            originalGrams: aiGrams,
-            carbs: round(carbs, 1),
-            protein: round(protein, 1),
-            fat: round(fat, 1),
-            kcal: round(kcal, 0),
-            confidence: clamp(Number(item.confidence) || 0.5, 0, 1),
-            source: factor === 1 ? "photo-ai" : "photo-ai-calibrated",
-            userAdjusted: false,
-            rangeNote: [
-              rangeNote,
-              String(item.portionBasis || ""),
-              String(item.note || ""),
-              factor !== 1 ? "已参考你的历史份量修正" : ""
-            ]
-              .filter(Boolean)
-              .join("；"),
-            note: String(item.note || "")
-          };
-        })
-        .filter((item) => item.name && item.grams > 0);
-      if (!items.length) throw new Error("没有从照片中识别到有效食物，请补写食物名称。");
-      return {
-        items,
-        overallConfidence: clamp(Number(parsed.overallConfidence) || 0, 0, 1),
-        note: String(parsed.note || "照片估算会受隐藏油脂与餐具遮挡影响，请检查份量。")
-      };
-    } catch (error) {
-      if (error.name === "AbortError") throw new Error("照片分析超时，请检查网络后重试。");
-      if (error instanceof TypeError) {
-        throw new Error("无法连接 AI 接口。请检查 API 地址、CORS 设置或网络。");
-      }
-      throw error;
-    } finally {
-      window.clearTimeout(timeout);
-    }
   }
 
-  function parseAIJson(text) {
-    const cleaned = String(text)
-      .replace(/^```(?:json)?\s*/i, "")
-      .replace(/\s*```$/i, "")
-      .trim();
-    try {
-      return JSON.parse(cleaned);
-    } catch {
-      const start = cleaned.indexOf("{");
-      const end = cleaned.lastIndexOf("}");
-      if (start >= 0 && end > start) {
-        try {
-          return JSON.parse(cleaned.slice(start, end + 1));
-        } catch {
-          return null;
-        }
-      }
-      return null;
-    }
-  }
-
-  function openWeightModal(date = selectedDate) {
-    const latest = findLatestWeight(toDateISO(new Date()));
-    const existing = state.weights.find((entry) => entry.date === date);
-    openModal(`
-      ${modalHeader("记录体重", "固定时间、相近条件称重，比单次数字更有意义。")}
-      <div class="modal-body">
-        <div class="form-grid two">
-          <label class="field">
-            <span>日期</span>
-            <input id="weight-date" type="date" value="${escapeHTML(date)}" max="${toDateISO(new Date())}">
-          </label>
-          <label class="field">
-            <span>体重（kg）</span>
-            <input id="weight-value" type="number" min="35" max="250" step="0.1" value="${existing?.weight ?? latest?.weight ?? state.profile.weight}">
-          </label>
-        </div>
-        <p class="weight-modal-copy">建议起床、如厕后、进食前称重。偶尔一次波动不代表脂肪变化。</p>
-      </div>
-      <div class="modal-footer">
-        <button class="secondary-button" type="button" data-close-modal>取消</button>
-        <button class="primary-button" id="save-weight" type="button">保存体重</button>
-      </div>
-    `);
-    $("#save-weight").addEventListener("click", () => {
-      const weightDate = $("#weight-date").value;
-      const weight = Number($("#weight-value").value);
-      if (!weightDate || !Number.isFinite(weight) || weight < 35 || weight > 250) {
-        toast("请输入有效体重（35–250kg）", "error");
-        return;
-      }
-      const index = state.weights.findIndex((entry) => entry.date === weightDate);
-      const entry = {
-        id: existing?.id || uid(),
-        date: weightDate,
-        weight: round(weight, 1),
-        createdAt: new Date().toISOString()
-      };
-      if (index >= 0) state.weights[index] = entry;
-      else state.weights.push(entry);
-      state.weights.sort((a, b) => a.date.localeCompare(b.date));
-      const newestDate = state.weights.at(-1)?.date;
-      if (weightDate === newestDate) state.profile.weight = round(weight, 1);
-      saveState();
-      closeModal();
-      selectedDate = weightDate;
-      renderToday();
-      renderTrends();
-      toast("体重已记录");
-    });
-  }
-
-  function openSetupModal() {
-    openModal(
-      `
-      <div class="setup-layout">
-        <div class="setup-art">
-          <span class="brand-mark">
-            <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M8 20c0-7 5-12 12-12s12 5 12 12-5 12-12 12S8 27 8 20Z"/><path d="M20 12c-1 5-4 8-9 9 5 1 8 4 9 9 1-5 4-8 9-9-5-1-8-4-9-9Z"/></svg>
-          </span>
-          <span class="eyebrow eyebrow-light">BUILD YOUR PLAN</span>
-          <h2>用身体数据和训练量，算出今天该吃多少。</h2>
-          <p>目标会按视频方案自动变化。开始之后仍可在“参数设置”里随时修改。</p>
-          <div class="setup-orbit"></div>
-        </div>
-        <form class="setup-form-wrap" id="setup-form">
-          <span class="eyebrow">START HERE</span>
-          <h2>先建立你的基准</h2>
-          <p>填写当前体重与每周训练次数，约一分钟就能开始记录。</p>
-          <div class="form-grid two">
-            <label class="field"><span>称呼（可选）</span><input id="setup-name" type="text" maxlength="20" placeholder="怎么称呼你"></label>
-            <label class="field"><span>当前体重（kg）</span><input id="setup-weight" type="number" min="35" max="250" step="0.1" value="${state.profile.weight}" required></label>
-            <label class="field"><span>目标体重（kg）</span><input id="setup-goal-weight" type="number" min="35" max="250" step="0.1" value="${state.profile.goalWeight}" required></label>
-            <label class="field range-field">
-              <span>每周训练次数 <b id="setup-sessions-value">${state.profile.sessions} 次</b></span>
-              <input id="setup-sessions" type="range" min="0" max="9" step="1" value="${state.profile.sessions}">
-            </label>
-          </div>
-          <div class="setup-preview" id="setup-preview"></div>
-          <div class="setup-actions">
-            <button class="secondary-button" type="button" id="setup-demo">先看示例</button>
-            <button class="primary-button" type="submit">建立我的计划</button>
-          </div>
-        </form>
-      </div>`,
-      true
-    );
-    const update = () => {
-      const sessions = Number($("#setup-sessions").value);
-      const weight = Number($("#setup-weight").value) || 70;
-      const target = calculateAutoTargets(weight, sessions);
-      $("#setup-sessions-value").textContent = `${sessions} 次`;
-      $("#setup-preview").innerHTML = `
-        <span><b>${target.carbs}g</b><small>碳水</small></span>
-        <span><b>${target.protein}g</b><small>蛋白质</small></span>
-        <span><b>${target.fat}g</b><small>脂肪</small></span>
-        <span><b>${target.kcal}</b><small>千卡</small></span>`;
-    };
-    $("#setup-sessions").addEventListener("input", update);
-    $("#setup-weight").addEventListener("input", update);
-    update();
-    $("#setup-demo").addEventListener("click", () => {
-      loadDemoData(false);
-      closeModal();
-      renderAll();
-      toast("已载入一组示例记录，可在设置中清空");
-    });
-    $("#setup-form").addEventListener("submit", (event) => {
-      event.preventDefault();
-      const weight = Number($("#setup-weight").value);
-      const goalWeight = Number($("#setup-goal-weight").value);
-      const sessions = Number($("#setup-sessions").value);
-      if (!isValidProfile(weight, goalWeight)) return;
-      state.profile = {
-        ...state.profile,
-        name: $("#setup-name").value.trim(),
-        weight: round(weight, 1),
-        goalWeight: round(goalWeight, 1),
-        sessions,
-        setupComplete: true,
-        targetMode: "auto",
-        customTargets: null
-      };
-      upsertWeightForDate(toDateISO(new Date()), weight);
-      saveState();
-      closeModal();
-      renderAll();
-      toast("计划已经建立，从今天开始记录吧");
-    });
-  }
-
-  function isValidProfile(weight, goalWeight) {
-    if (!Number.isFinite(weight) || weight < 35 || weight > 250) {
-      toast("当前体重应在 35–250kg 之间", "error");
-      return false;
-    }
-    if (!Number.isFinite(goalWeight) || goalWeight < 35 || goalWeight > 250) {
-      toast("目标体重应在 35–250kg 之间", "error");
-      return false;
-    }
-    return true;
-  }
-
-  function upsertWeightForDate(date, weight) {
-    const entry = { id: uid(), date, weight: round(weight, 1), createdAt: new Date().toISOString() };
-    const index = state.weights.findIndex((item) => item.date === date);
-    if (index >= 0) state.weights[index] = { ...state.weights[index], ...entry };
-    else state.weights.push(entry);
-    state.weights.sort((a, b) => a.date.localeCompare(b.date));
-  }
-
-  function openAdjustmentModal() {
-    const stats = weekStats();
-    const target = getTargets();
-    const weight = state.profile.weight;
-    let delta = 0;
-    let title = "目前先保持";
-    let reason = "数据还不够形成调整结论。继续记录饮食和体重，观察完整的一周。";
-    if (stats.loggedDays.length >= 3 && stats.weightTrend.status === "data") {
-      if (stats.weightTrend.pct < 0.1) {
-        delta = -0.2;
-        title = "建议碳水小幅下调";
-        reason = "体重周变化接近停滞。只有在饮食记录完整的前提下，才建议把每日碳水减少 0.2g/kg。";
-      } else if (stats.weightTrend.pct > 1.1) {
-        delta = 0.2;
-        title = "建议碳水小幅上调";
-        reason = "体重下降偏快。若训练表现或恢复也在下降，可先把每日碳水增加 0.2g/kg。";
-      } else {
-        title = "继续保持当前目标";
-        reason = "体重变化在可持续范围内，无需为了更快下降进一步压低摄入。";
-      }
-    }
-    const carbDelta = Math.round(weight * delta);
-    const suggested = {
-      carbs: Math.max(100, target.carbs + carbDelta),
-      protein: target.protein,
-      fat: target.fat
-    };
-    const kcal = Math.round(suggested.carbs * 4 + suggested.protein * 4 + suggested.fat * 9);
-    openModal(`
-      ${modalHeader("本周调整建议", "建议只调整一个变量，并至少观察一周。")}
-      <div class="modal-body">
-        <h3 style="margin:8px 0;font-family:var(--font-display);font-size:22px">${title}</h3>
-        <p class="settings-intro">${reason}</p>
-        <div class="target-preview">
-          <div><span>当前碳水</span><strong>${target.carbs}g</strong></div>
-          <div><span>建议碳水</span><strong>${suggested.carbs}g</strong></div>
-          <div><span>蛋白质</span><strong>${suggested.protein}g</strong></div>
-          <div><span>新热量</span><strong>${kcal}</strong></div>
-        </div>
-        <div class="security-note" style="margin-top:16px">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M5 10l7-7 7 7"/></svg>
-          <p>如果记录不完整、体重只测了一次，或本周有生病、旅行、聚会等特殊情况，建议先保持原计划再观察一周。</p>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="secondary-button" type="button" data-close-modal>先不调整</button>
-        <button class="primary-button" id="confirm-adjustment" type="button">设为手动目标</button>
-      </div>
-    `);
-    $("#confirm-adjustment").addEventListener("click", () => {
-      state.profile.targetMode = "manual";
-      state.profile.customTargets = suggested;
-      saveState();
-      closeModal();
-      renderAll();
-      toast("已应用为手动目标，之后可随时恢复自动计算");
-    });
-  }
-
-  function loadDemoData(confirmFirst = true) {
-    if (
-      confirmFirst &&
-      state.meals.length &&
-      !window.confirm("载入示例会覆盖当前记录，继续吗？")
-    ) {
+  function renderDraftItems() {
+    if (!draftMeal.items.length) {
+      $("#analysis-editor").hidden = true;
       return;
     }
-    const today = toDateISO(new Date());
-    state.profile = {
-      ...state.profile,
-      name: state.profile.name || "小林",
-      height: 172,
-      weight: 70.8,
-      goalWeight: 65,
-      sessions: 5,
-      setupComplete: true,
-      targetMode: "auto",
-      customTargets: null
-    };
-    const rawMeals = [
-      { offset: 0, type: "breakfast", text: "燕麦 50g，鸡蛋 2个，蓝莓 100g，牛奶 200ml" },
-      { offset: 0, type: "lunch", text: "鸡胸肉 180g，米饭 150g，西兰花 200g，橄榄油 8g" },
-      { offset: -1, type: "breakfast", text: "全麦面包 2片，鸡蛋 2个，无糖酸奶 150g", time: "08:12" },
-      { offset: -1, type: "lunch", text: "牛肉 160g，米饭 180g，混合蔬菜 250g，橄榄油 8g", time: "12:26" },
-      { offset: -1, type: "dinner", text: "三文鱼 150g，红薯 200g，西兰花 220g", time: "18:45" },
-      { offset: -2, type: "breakfast", text: "燕麦 45g，鸡蛋白 4个，香蕉 100g", time: "07:58" },
-      { offset: -2, type: "lunch", text: "鸡腿肉 180g，米饭 160g，蔬菜 250g，橄榄油 7g", time: "12:18" },
-      { offset: -2, type: "snack", text: "混合坚果 10g", time: "16:20" },
-      { offset: -3, type: "breakfast", text: "全麦面包 2片，鸡蛋 2个，牛奶 250ml", time: "08:04" },
-      { offset: -3, type: "lunch", text: "虾 180g，米饭 170g，西兰花 200g", time: "12:40" },
-      { offset: -3, type: "dinner", text: "鸡胸肉 150g，土豆 250g，混合蔬菜 300g，橄榄油 6g", time: "19:02" },
-      { offset: -4, type: "breakfast", text: "燕麦 50g，鸡蛋 1个，希腊酸奶 150g", time: "08:15" },
-      { offset: -4, type: "lunch", text: "牛肉 170g，米粉 200g，青菜 250g", time: "12:31" },
-      { offset: -5, type: "breakfast", text: "全麦面包 2片，鸡蛋 2个，蓝莓 100g", time: "08:22" },
-      { offset: -5, type: "dinner", text: "三文鱼 160g，紫薯 220g，西兰花 250g", time: "18:52" }
-    ];
-    state.meals = rawMeals.map((meal, index) => {
-      const items = parseFoodText(meal.text);
-      return {
-        id: `demo-meal-${index}`,
-        date: shiftDate(today, meal.offset),
-        type: meal.type,
-        note: meal.text,
-        rawText: meal.text,
-        photo: null,
-        items,
-        totals: normalizeTotals(totalItems(items)),
-        time: meal.time || (meal.type === "breakfast" ? "08:10" : meal.type === "lunch" ? "12:20" : "18:35"),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-    });
-    const baseWeights = [72.2, 72, 71.9, 71.7, 71.8, 71.5, 71.4, 71.3, 71.2, 71, 71.1, 70.9, 70.8];
-    state.weights = baseWeights.map((weight, index) => ({
-      id: `demo-weight-${index}`,
-      date: shiftDate(today, -(baseWeights.length - 1 - index)),
-      weight,
-      createdAt: new Date().toISOString()
-    }));
-    selectedDate = today;
-    saveState();
+    $("#analysis-editor").hidden = false;
+    $("#food-items").innerHTML = `
+      <div class="food-row food-header" aria-hidden="true">
+        <span>食物</span><span>份量</span><span>蛋白 g</span><span>碳水 g</span><span>脂肪 g</span><span></span>
+      </div>
+      ${draftMeal.items.map((item, index) => `
+      <div class="food-row" data-food-index="${index}">
+        <input data-field="name" value="${escapeHtml(item.name)}" aria-label="食物名称" placeholder="食物">
+        <input data-field="portion" value="${escapeHtml(item.portion)}" aria-label="份量" placeholder="份量">
+        <input data-field="protein" type="number" min="0" step="0.1" value="${num(item.protein)}" aria-label="蛋白质克数" placeholder="蛋白">
+        <input data-field="carbs" type="number" min="0" step="0.1" value="${num(item.carbs)}" aria-label="碳水克数" placeholder="碳水">
+        <input data-field="fat" type="number" min="0" step="0.1" value="${num(item.fat)}" aria-label="脂肪克数" placeholder="脂肪">
+        <button type="button" data-remove-food="${index}" aria-label="删除食物">×</button>
+      </div>
+    `).join("")}`;
+    $("#ai-feedback").textContent = draftMeal.aiFeedback ||
+      (draftMeal.assumptions?.length ? `估算假设：${draftMeal.assumptions.join("；")}` : "");
+    updateDraftTotals();
   }
 
-  function renderAll() {
-    renderToday();
-    renderTrends();
-    renderPlan();
-    fillSettings();
-    updateDateUI();
+  function draftTotals() {
+    const totals = draftMeal.items.reduce((sum, item) => {
+      sum.protein += num(item.protein);
+      sum.carbs += num(item.carbs);
+      sum.fat += num(item.fat);
+      return sum;
+    }, { protein: 0, carbs: 0, fat: 0 });
+    totals.calories = Math.round(totals.protein * 4 + totals.carbs * 4 + totals.fat * 9);
+    return totals;
+  }
+
+  function updateDraftTotals() {
+    if (!draftMeal) return;
+    const totals = draftTotals();
+    setText("#draft-protein", `${round(totals.protein, 1)} g`);
+    setText("#draft-carbs", `${round(totals.carbs, 1)} g`);
+    setText("#draft-fat", `${round(totals.fat, 1)} g`);
+    setText("#draft-calories", `${totals.calories} kcal`);
+  }
+
+  async function analyzeMeal() {
+    if (!draftMeal.images.length && !$("#meal-description").value.trim()) {
+      setFormMessage("meal-form-message", "请至少上传一张照片，或描述这餐吃了什么。", true);
+      return;
+    }
+    if (!aiHealth.configured) {
+      setFormMessage("meal-form-message", "请先在设置中连接 OpenAI API Key。", true);
+      closeDialog("meal-dialog");
+      openSettings();
+      return;
+    }
+    const button = $("#analyze-meal");
+    button.disabled = true;
+    $("#analysis-state").hidden = false;
+    $("#analysis-state-title").textContent = "正在识别餐盘";
+    $("#analysis-state-copy").textContent = "拆分食物、估算份量并计算蛋白质、碳水和脂肪……";
+    setFormMessage("meal-form-message", "");
+    try {
+      const mealPayload = {
+        images: draftMeal.images,
+        description: $("#meal-description").value.trim(),
+        mealType: $("#meal-type").value,
+        targets: getTargets()
+      };
+      let payload;
+      if (aiMode === "direct") {
+        payload = state.settings.apiProvider !== "openai"
+          ? await analyzeMealCompatible(mealPayload)
+          : await analyzeMealDirect(mealPayload);
+      }
+      else if (aiMode === "proxy") {
+        payload = await analyzeMealProxy(mealPayload);
+      }
+      else {
+        payload = await analyzeMealLocal(mealPayload);
+      }
+      const result = normalizeAnalysis(payload);
+      draftMeal.items = result.items;
+      draftMeal.title = result.mealName;
+      draftMeal.aiFeedback = result.coachFeedback;
+      draftMeal.assumptions = result.assumptions;
+      renderDraftItems();
+      $("#analysis-state-title").textContent = "识别完成";
+      $("#analysis-state-copy").textContent = "结果可以根据实际份量继续修改。";
+      setTimeout(() => { $("#analysis-state").hidden = true; }, 700);
+      $("#save-meal").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    } catch (error) {
+      console.error(error);
+      $("#analysis-state").hidden = true;
+      setFormMessage("meal-form-message", error.message || "识别失败，请稍后重试。", true);
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function analyzeMealLocal(mealPayload) {
+    const response = await fetch("/api/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(mealPayload)
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || `识别失败（HTTP ${response.status}）`);
+    return payload;
+  }
+
+  async function analyzeMealProxy(mealPayload) {
+    const proxyUrl = (state.settings.proxyUrl || "").trim();
+    if (!proxyUrl) throw new Error("请先填写 AI 代理地址。");
+    const proxyToken = localStorage.getItem(PROXY_TOKEN_KEY) || "";
+    const response = await fetch(proxyUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(proxyToken ? { "X-App-Token": proxyToken } : {})
+      },
+      body: JSON.stringify(mealPayload)
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || `代理识别失败（HTTP ${response.status}）`);
+    return payload;
+  }
+
+  async function analyzeMealDirect(mealPayload) {
+    const apiKey = localStorage.getItem(DIRECT_AI_KEY) || "";
+    if (!apiKey) throw new Error("请先在设置中填写 OpenAI API Key。");
+    const model = state.settings.model || "gpt-4.1-mini";
+    const baseUrl = (state.settings.baseUrl || "https://api.openai.com/v1").replace(/\/+$/, "");
+    const mealTypeName = MEAL_META[mealPayload.mealType]?.name || "加餐";
+    const target = mealPayload.targets;
+    const targetText = target
+      ? `当前每日目标：蛋白质 ${target.protein} g，碳水 ${target.carbs} g，脂肪 ${target.fat} g，热量约 ${target.calories} kcal。`
+      : "当前没有额外每日目标。";
+    const systemPrompt = [
+      "你是一名严谨、务实的中文营养记录助手。用户会提供餐食照片和可选说明。",
+      "请拆分照片中可见或被文字明确描述的食物，估算本餐实际食用份量，并计算蛋白质、碳水、脂肪和热量。",
+      "不要凭空添加食物；看不清重量时给合理中位估算，并在 assumptions 中写明。",
+      "调味油、酱汁、坚果和饮品等隐形热量也要纳入。",
+      "所有营养素必须是本餐实际摄入总量，单位克，不能写每100克数值。",
+      "多张照片先去重同一盘食物。confidence 用 0 到 1 表示。",
+      "coach_feedback 用一两句话指出最值得注意的一点，不做疾病诊断。",
+      "只返回符合指定 JSON Schema 的数据，不要 Markdown。"
+    ].join("\n");
+    const userText = `本餐类型：${mealTypeName}\n用户描述：${mealPayload.description || "无"}\n${targetText}\n请按食物拆分并输出本餐实际摄入量。`;
+    const content = [{ type: "input_text", text: userText }];
+    mealPayload.images.forEach(image => content.push({ type: "input_image", image_url: image }));
+    const itemSchema = {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        name: { type: "string" },
+        portion: { type: "string" },
+        protein: { type: "number", minimum: 0 },
+        carbs: { type: "number", minimum: 0 },
+        fat: { type: "number", minimum: 0 },
+        calories: { type: "number", minimum: 0 },
+        confidence: { type: "number", minimum: 0, maximum: 1 }
+      },
+      required: ["name", "portion", "protein", "carbs", "fat", "calories", "confidence"]
+    };
+    const totalSchema = {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        protein: { type: "number", minimum: 0 },
+        carbs: { type: "number", minimum: 0 },
+        fat: { type: "number", minimum: 0 },
+        calories: { type: "number", minimum: 0 }
+      },
+      required: ["protein", "carbs", "fat", "calories"]
+    };
+    const schema = {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        meal_name: { type: "string" },
+        items: { type: "array", items: itemSchema },
+        totals: totalSchema,
+        assumptions: { type: "array", items: { type: "string" } },
+        coach_feedback: { type: "string" }
+      },
+      required: ["meal_name", "items", "totals", "assumptions", "coach_feedback"]
+    };
+    const response = await fetch(`${baseUrl}/responses`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model,
+        input: [
+          { role: "system", content: [{ type: "input_text", text: systemPrompt }] },
+          { role: "user", content }
+        ],
+        text: {
+          format: {
+            type: "json_schema",
+            name: "meal_nutrition_analysis",
+            strict: true,
+            schema
+          }
+        },
+        max_output_tokens: 1800
+      })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload.error?.message || payload.message || `OpenAI 请求失败（HTTP ${response.status}）`);
+    }
+    const text = (payload.output || [])
+      .flatMap(output => output.content || [])
+      .filter(contentItem => contentItem.type === "output_text" && contentItem.text)
+      .map(contentItem => contentItem.text)
+      .join("\n")
+      .trim()
+      .replace(/^```(?:json)?\s*([\s\S]*?)\s*```$/, "$1");
+    if (!text) throw new Error("AI 没有返回可解析的识别结果。");
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new Error("AI 返回的结果不是有效 JSON，请重试。");
+    }
+  }
+
+  async function analyzeMealCompatible(mealPayload) {
+    const provider = state.settings.apiProvider || "deepseek";
+    const isDashScope = provider === "dashscope";
+    const providerName = isDashScope ? "阿里云百炼" : "DeepSeek";
+    const apiKey = localStorage.getItem(isDashScope ? DASHSCOPE_AI_KEY : DEEPSEEK_AI_KEY) || "";
+    if (!apiKey) throw new Error(`请先在设置中填写${providerName} API Key。`);
+    const model = state.settings.model || (isDashScope ? "qwen3.8-max" : "deepseek-flash");
+    const baseUrl = (state.settings.baseUrl || (isDashScope
+      ? "https://dashscope.aliyuncs.com/compatible-mode/v1"
+      : "https://api.deepseek.com")).replace(/\/+$/, "");
+    const mealTypeName = MEAL_META[mealPayload.mealType]?.name || "加餐";
+    const target = mealPayload.targets;
+    const targetText = target
+      ? `当前每日目标：蛋白质 ${target.protein} g，碳水 ${target.carbs} g，脂肪 ${target.fat} g，热量约 ${target.calories} kcal。`
+      : "当前没有额外每日目标。";
+    const prompt = `你是一名严谨、务实的中文营养记录助手。请识别餐食照片并按食物拆分，估算实际摄入份量。
+只分析照片中可见或用户确认的食物，不要凭空添加。看不清重量时给出合理中位估算，并在 assumptions 写明。
+调味油、酱汁、坚果和饮品等隐形热量也要纳入。营养单位均为本餐实际摄入克数。
+多张照片先去重同一盘食物。coach_feedback 用一两句话指出最值得注意的一点，不做疾病诊断。
+
+本餐类型：${mealTypeName}
+用户描述：${mealPayload.description || "无"}
+${targetText}
+
+只返回以下 JSON，不要 Markdown：
+{
+  "meal_name": "餐食名称",
+  "items": [
+    {
+      "name": "食物名称",
+      "portion": "估算份量",
+      "protein": 0,
+      "carbs": 0,
+      "fat": 0,
+      "calories": 0,
+      "confidence": 0.8
+    }
+  ],
+  "totals": {"protein": 0, "carbs": 0, "fat": 0, "calories": 0},
+  "assumptions": ["估算假设"],
+  "coach_feedback": "一句营养建议"
+}`;
+    const content = mealPayload.images.map(image => ({
+      type: "image_url",
+      image_url: { url: image }
+    }));
+    content.push({ type: "text", text: prompt });
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "user", content }],
+        temperature: 0.2,
+        max_tokens: 1800
+      })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload.error?.message || payload.message || `${providerName}请求失败（HTTP ${response.status}）`);
+    }
+    const contentValue = payload.choices?.[0]?.message?.content;
+    const text = (Array.isArray(contentValue)
+      ? contentValue.map(item => item.text || "").join("\n")
+      : String(contentValue || "")
+    ).trim().replace(/^```(?:json)?\s*([\s\S]*?)\s*```$/, "$1");
+    if (!text) throw new Error(`${providerName}没有返回可解析的识别结果。`);
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new Error(`${providerName}返回的结果不是有效 JSON，请重试。`);
+    }
+  }
+
+  function normalizeAnalysis(payload) {
+    const items = Array.isArray(payload.items) ? payload.items : [];
+    const normalizedItems = items.length
+      ? items.map(item => defaultFoodItem(item))
+      : [{ name: "整餐估算", portion: "1 份", protein: num(payload.totals?.protein), carbs: num(payload.totals?.carbs), fat: num(payload.totals?.fat) }];
+    return {
+      mealName: String(payload.meal_name || "AI 识别餐食").slice(0, 80),
+      items: normalizedItems,
+      coachFeedback: String(payload.coach_feedback || payload.notes || "营养结果为照片估算，请根据实际份量修改。"),
+      assumptions: Array.isArray(payload.assumptions) ? payload.assumptions.map(String).slice(0, 5) : []
+    };
+  }
+
+  function setFormMessage(elementId, text, isError = false, isSuccess = false) {
+    const element = $(`#${elementId}`);
+    if (!element) return;
+    element.textContent = text;
+    element.className = `form-message${isError ? " error" : ""}${isSuccess ? " success" : ""}`;
+  }
+
+  function manualMealEntry() {
+    if (!draftMeal.items.length) {
+      draftMeal.items = [defaultFoodItem()];
+      renderDraftItems();
+    }
+    $("#analysis-editor").scrollIntoView({ behavior: "smooth", block: "start" });
+    setTimeout(() => $("#food-items input")?.focus(), 250);
+  }
+
+  async function saveDraftMeal(event) {
+    event.preventDefault();
+    if (!draftMeal) return;
+    draftMeal.date = $("#meal-date").value || localDateString();
+    draftMeal.type = $("#meal-type").value;
+    draftMeal.description = $("#meal-description").value.trim();
+    draftMeal.items = draftMeal.items.filter(item =>
+      item.name.trim() || num(item.protein) || num(item.carbs) || num(item.fat)
+    );
+    if (!draftMeal.items.length) {
+      setFormMessage("meal-form-message", "至少填写一种食物及其营养数据。", true);
+      return;
+    }
+    if (!draftMeal.title) {
+      draftMeal.title = draftMeal.items.map(item => item.name).filter(Boolean).slice(0, 3).join("、") || MEAL_META[draftMeal.type].name;
+    }
+    const existingIndex = state.meals.findIndex(meal => meal.id === draftMeal.id);
+    const mealToSave = { ...draftMeal, updatedAt: new Date().toISOString() };
+    if (existingIndex >= 0) state.meals[existingIndex] = mealToSave;
+    else state.meals.push(mealToSave);
+    state.selectedMealDate = mealToSave.date;
+    saveState();
+    closeDialog("meal-dialog");
+    renderAll();
+    showToast(existingIndex >= 0 ? "这一餐已更新。" : "这一餐已记入今天的饮食。");
+  }
+
+  function deleteMeal(id) {
+    const meal = state.meals.find(item => item.id === id);
+    if (!meal) return;
+    if (!confirm(`删除“${MEAL_META[meal.type]?.name || "这一餐"} · ${meal.title || "饮食记录"}”？`)) return;
+    state.meals = state.meals.filter(item => item.id !== id);
+    saveState();
+    renderAll();
+    showToast("饮食记录已删除。");
+  }
+
+  function openWeightDialog() {
+    $("#weight-date").value = localDateString();
+    $("#weight-value").value = round(currentWeight(), 1);
+    $("#weight-note").value = "";
+    setFormMessage("weight-form-message", "");
+    openDialog("weight-dialog");
+  }
+
+  async function saveWeight(event) {
+    event.preventDefault();
+    const date = $("#weight-date").value;
+    const weight = num($("#weight-value").value);
+    const note = $("#weight-note").value.trim();
+    if (!date || weight < 25 || weight > 300) {
+      setFormMessage("weight-form-message", "请输入有效日期和体重。", true);
+      return;
+    }
+
+    const previous = [...state.weights]
+      .filter(entry => entry.date < date)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .at(-1);
+    const existing = state.weights.find(entry => entry.date === date);
+    if (existing) {
+      existing.weight = weight;
+      existing.note = note;
+      existing.updatedAt = new Date().toISOString();
+    } else {
+      state.weights.push({
+        id: uid(),
+        date,
+        weight,
+        note,
+        createdAt: new Date().toISOString()
+      });
+    }
+    state.profile.weight = weight;
+    const adjustment = evaluateWeightAdjustment(previous, { date, weight });
+    saveState();
+    closeDialog("weight-dialog");
+    renderAll();
+    if (adjustment) {
+      showToast(adjustment);
+    } else {
+      showToast("体重已保存，每日目标已按新体重更新。");
+    }
+  }
+
+  function evaluateWeightAdjustment(previous, current) {
+    if (!previous) return "";
+    const elapsed = daysBetween(previous.date, current.date);
+    if (elapsed < 5 || elapsed > 35) return "";
+    if (state.lastAutoAdjustDate && daysBetween(state.lastAutoAdjustDate, current.date) < 7) {
+      return "体重已保存；距离上次自动调整不足 7 天，今天先不叠加修改。";
+    }
+    const weeklyRate = ((num(current.weight) - num(previous.weight)) / num(previous.weight)) * (7 / elapsed) * 100;
+    const adherence = loggedDaysInRange(lastWeekDates(current.date));
+    let nextModifier = num(state.carbModifier);
+    let message = "";
+    if (weeklyRate > -0.25 && adherence >= 4) {
+      nextModifier = Math.max(-80, nextModifier - 20);
+      message = `近 ${elapsed} 天下降偏慢，已自动下调 20 g 碳水。`;
+    } else if (weeklyRate < -1.2) {
+      nextModifier = Math.min(40, nextModifier + 20);
+      message = `近 ${elapsed} 天下降较快，已自动回升 20 g 碳水。`;
+    } else if (weeklyRate > 0.55) {
+      nextModifier = Math.max(-80, nextModifier - 20);
+      message = "近期体重上升，已自动下调 20 g 碳水；先确认记录是否完整。";
+    }
+    if (message) {
+      state.carbModifier = nextModifier;
+      state.lastAutoAdjustDate = current.date;
+      return `${message}现在每天碳水修正 ${nextModifier > 0 ? "+" : ""}${nextModifier} g。`;
+    }
+    return "";
+  }
+
+  function deleteWeight(id) {
+    const entry = state.weights.find(item => item.id === id);
+    if (!entry || !confirm(`删除 ${formatShortDate(entry.date)} 的 ${round(entry.weight, 1)} kg 记录？`)) return;
+    state.weights = state.weights.filter(item => item.id !== id);
+    const sorted = [...state.weights].sort((a, b) => a.date.localeCompare(b.date));
+    state.profile.weight = sorted.length ? num(sorted.at(-1).weight) : state.profile.weight;
+    saveState();
+    renderAll();
+    showToast("体重记录已删除。");
+  }
+
+  function openSettings() {
+    populateSettings();
+    openDialog("settings-dialog");
+  }
+
+  function selectedAiMode() {
+    return $('input[name="ai-connection-mode"]:checked')?.value || "direct";
+  }
+
+  function directKeyStorageName(provider = state.settings.apiProvider) {
+    if (provider === "dashscope") return DASHSCOPE_AI_KEY;
+    if (provider === "deepseek") return DEEPSEEK_AI_KEY;
+    return DIRECT_AI_KEY;
+  }
+
+  function updateProviderFields(applyDefaults = false) {
+    const provider = $("#ai-provider").value || "deepseek";
+    const isDashScope = provider === "dashscope";
+    const isDeepSeek = provider === "deepseek";
+    $("#api-key-label").textContent = isDashScope
+      ? "百炼 API Key"
+      : isDeepSeek ? "DeepSeek API Key" : "OpenAI API Key";
+    $("#openai-key").placeholder = isDashScope
+      ? "请输入阿里云百炼 API Key"
+      : isDeepSeek ? "请输入 DeepSeek API Key" : "请输入 OpenAI API Key";
+    $("#openai-key-help").textContent = isDashScope
+      ? "从阿里云百炼控制台获取 API Key。Key 只保存在当前设备浏览器，不会写入 GitHub。"
+      : isDeepSeek
+        ? "从 DeepSeek 开放平台获取 API Key。Key 只保存在当前设备浏览器，不会写入 GitHub。"
+        : "Key 只保存在当前设备浏览器。请使用单独的项目 Key，并设置预算上限。";
+    if (applyDefaults) {
+      $("#openai-model").value = isDashScope
+        ? "qwen3.8-max"
+        : isDeepSeek ? "deepseek-flash" : "gpt-4.1-mini";
+      $("#openai-base-url").value = isDashScope
+        ? "https://dashscope.aliyuncs.com/compatible-mode/v1"
+        : isDeepSeek ? "https://api.deepseek.com" : "https://api.openai.com/v1";
+      $("#openai-key").value = "";
+    }
+  }
+
+  function updateAiModePanels(mode = selectedAiMode()) {
+    $("#direct-ai-panel").hidden = mode !== "direct";
+    $("#proxy-ai-panel").hidden = mode !== "proxy";
+    $$(".backend-only").forEach(element => {
+      element.style.display = backendAvailable ? "" : "none";
+    });
+  }
+
+  function populateSettings() {
+    $("#profile-name").value = state.profile.name || "";
+    $("#profile-sex").value = state.profile.sex || "female";
+    $("#profile-height").value = num(state.profile.height);
+    $("#profile-weight").value = round(currentWeight(), 1);
+    $("#profile-goal-weight").value = num(state.profile.goalWeight);
+    $("#profile-exercise").value = num(state.profile.weeklyExerciseHours);
+    $("#profile-female-support").checked = Boolean(state.profile.femaleSupport);
+    $("#ai-provider").value = state.settings.apiProvider || "deepseek";
+    $("#openai-model").value = state.settings.model || "deepseek-flash";
+    $("#openai-base-url").value = state.settings.baseUrl || "https://api.deepseek.com";
+    $("#ai-proxy-url").value = state.settings.proxyUrl || "";
+    $("#ai-proxy-token").value = localStorage.getItem(PROXY_TOKEN_KEY) || "";
+    $("#openai-key").value = "";
+    const preferred = state.settings.connectionMode || "auto";
+    const resolvedMode = preferred === "auto"
+      ? (backendAvailable ? "backend" : "direct")
+      : preferred;
+    const safeMode = resolvedMode === "backend" && !backendAvailable ? "direct" : resolvedMode;
+    const modeInput = $(`input[name="ai-connection-mode"][value="${safeMode}"]`);
+    if (modeInput) modeInput.checked = true;
+    updateAiModePanels(safeMode);
+    updateProviderFields(false);
+    updateAiStatus();
+    setFormMessage("settings-message", "");
+  }
+
+  function saveSettings(event) {
+    event.preventDefault();
+    const newWeight = num($("#profile-weight").value, currentWeight());
+    state.profile = {
+      ...state.profile,
+      name: $("#profile-name").value.trim() || "我的减脂计划",
+      sex: $("#profile-sex").value,
+      height: num($("#profile-height").value, state.profile.height),
+      weight: newWeight,
+      goalWeight: num($("#profile-goal-weight").value, state.profile.goalWeight),
+      weeklyExerciseHours: clamp(num($("#profile-exercise").value, state.profile.weeklyExerciseHours), 0, 40),
+      femaleSupport: $("#profile-female-support").checked
+    };
+    state.settings = {
+      ...state.settings,
+      apiProvider: $("#ai-provider").value || "deepseek",
+      model: $("#openai-model").value.trim() || "deepseek-flash",
+      baseUrl: $("#openai-base-url").value.trim().replace(/\/+$/, "") || "https://api.deepseek.com"
+    };
+    const latestWeight = [...state.weights].sort((a, b) => a.date.localeCompare(b.date)).at(-1);
+    if (!latestWeight || latestWeight.date !== localDateString()) {
+      state.weights.push({
+        id: uid(),
+        date: localDateString(),
+        weight: newWeight,
+        note: "来自身体资料更新",
+        createdAt: new Date().toISOString()
+      });
+    } else {
+      latestWeight.weight = newWeight;
+    }
+    saveState();
+    closeDialog("settings-dialog");
+    renderAll();
+    showToast("身体资料已保存，目标已重新计算。");
+  }
+
+  async function checkAiHealth() {
+    let backendPayload = null;
+    try {
+      const response = await fetch("/api/health", { cache: "no-store" });
+      const contentType = response.headers.get("content-type") || "";
+      if (response.ok && contentType.includes("application/json")) {
+        backendPayload = await response.json();
+        backendAvailable = true;
+      }
+    } catch (error) {
+      backendAvailable = false;
+    }
+
+    const directKey = localStorage.getItem(directKeyStorageName()) || "";
+    const proxyUrl = (state.settings.proxyUrl || "").trim();
+    const preferred = state.settings.connectionMode || "auto";
+    let mode = preferred;
+    if (preferred === "auto") {
+      if (directKey) mode = "direct";
+      else if (proxyUrl) mode = "proxy";
+      else if (backendAvailable) mode = "backend";
+      else mode = "direct";
+    }
+    if (mode === "backend" && !backendAvailable) mode = directKey ? "direct" : "proxy";
+    if (mode === "proxy" && !proxyUrl) mode = directKey ? "direct" : "direct";
+    aiMode = mode;
+    if (mode === "direct") {
+      aiHealth = {
+        configured: Boolean(directKey),
+        model: state.settings.model || "qwen3.8-max",
+        mode
+      };
+    }
+    else if (mode === "proxy") {
+      aiHealth = {
+        configured: Boolean(proxyUrl),
+        model: state.settings.model || "qwen3.8-max",
+        mode
+      };
+    }
+    else {
+      aiHealth = {
+        configured: Boolean(backendPayload?.configured),
+        model: backendPayload?.model || state.settings.model,
+        mode
+      };
+    }
+    updateAiStatus();
+  }
+
+  function updateAiStatus() {
+    const connected = Boolean(aiHealth.configured);
+    const modeLabels = {
+      direct: state.settings.apiProvider === "dashscope"
+        ? "百炼直连"
+        : state.settings.apiProvider === "deepseek" ? "DeepSeek 直连" : "OpenAI 直连",
+      proxy: "安全代理",
+      backend: "本机服务"
+    };
+    $("#ai-status-dot").classList.toggle("connected", connected);
+    $("#settings-ai-status").textContent = connected
+      ? `${modeLabels[aiHealth.mode] || "已连接"} · ${aiHealth.model || state.settings.model}`
+      : "尚未配置";
+    $("#settings-ai-status").classList.toggle("connected", connected);
+    if (connected) {
+      $("#ai-hint").textContent = aiHealth.mode === "proxy"
+        ? "照片将通过你的安全代理完成识别。"
+        : `将使用 ${aiHealth.model || state.settings.model} 进行照片估算。`;
+    }
+    else {
+      $("#ai-hint").textContent = "图片只用于本次营养估算，可随时在设置中关闭 AI。";
+    }
+  }
+
+  async function saveAiConfig() {
+    const key = $("#openai-key").value.trim();
+    const provider = $("#ai-provider").value || "deepseek";
+    const model = $("#openai-model").value.trim() || (
+      provider === "dashscope" ? "qwen3.8-max" : provider === "deepseek" ? "deepseek-flash" : "gpt-4.1-mini"
+    );
+    const baseUrl = $("#openai-base-url").value.trim().replace(/\/+$/, "") ||
+      (provider === "dashscope"
+        ? "https://dashscope.aliyuncs.com/compatible-mode/v1"
+        : provider === "deepseek" ? "https://api.deepseek.com" : "https://api.openai.com/v1");
+    const proxyUrl = $("#ai-proxy-url").value.trim();
+    const mode = selectedAiMode();
+    const button = $("#save-ai-config");
+    button.disabled = true;
+    setFormMessage("ai-config-message", "正在保存并测试连接…");
+    try {
+      if (mode === "direct") {
+        const storageName = directKeyStorageName(provider);
+        const effectiveKey = key || localStorage.getItem(storageName) || "";
+        if (!effectiveKey) throw new Error(
+          provider === "dashscope"
+            ? "请填写阿里云百炼 API Key。"
+            : provider === "deepseek" ? "请填写 DeepSeek API Key。" : "请填写 OpenAI API Key。"
+        );
+        if (provider !== "openai") {
+          const providerName = provider === "dashscope" ? "阿里云百炼" : "DeepSeek";
+          const testResponse = await fetch(`${baseUrl}/chat/completions`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${effectiveKey}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              model,
+              messages: [{ role: "user", content: "只回复 OK" }],
+              max_tokens: 8
+            })
+          });
+          if (!testResponse.ok) {
+            const errorPayload = await testResponse.json().catch(() => ({}));
+            throw new Error(errorPayload.error?.message || errorPayload.message || `${providerName}直连测试失败（HTTP ${testResponse.status}）`);
+          }
+        }
+        else {
+          const testResponse = await fetch(`${baseUrl}/models`, {
+            headers: { Authorization: `Bearer ${effectiveKey}` },
+            cache: "no-store"
+          });
+          if (!testResponse.ok) {
+            const errorPayload = await testResponse.json().catch(() => ({}));
+            throw new Error(errorPayload.error?.message || `设备直连测试失败（HTTP ${testResponse.status}）`);
+          }
+        }
+        localStorage.setItem(storageName, effectiveKey);
+      }
+      else if (mode === "proxy") {
+        if (!proxyUrl) throw new Error("请填写 AI 代理地址。");
+        const testUrl = new URL(proxyUrl, location.href);
+        if (!["https:", "http:"].includes(testUrl.protocol)) throw new Error("代理地址格式不正确。");
+        const proxyToken = $("#ai-proxy-token").value.trim();
+        const testResponse = await fetch(testUrl.href, {
+          cache: "no-store",
+          headers: proxyToken ? { "X-App-Token": proxyToken } : {}
+        });
+        if (!testResponse.ok) throw new Error(`代理连接测试失败（HTTP ${testResponse.status}）`);
+        if (proxyToken) localStorage.setItem(PROXY_TOKEN_KEY, proxyToken);
+        else localStorage.removeItem(PROXY_TOKEN_KEY);
+      }
+      else {
+        const saveResponse = await fetch("/api/config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ apiKey: key, model, baseUrl })
+        });
+        const savePayload = await saveResponse.json().catch(() => ({}));
+        if (!saveResponse.ok) throw new Error(savePayload.error || "配置保存失败");
+        const testResponse = await fetch("/api/test", { method: "POST" });
+        const testPayload = await testResponse.json().catch(() => ({}));
+        if (!testResponse.ok) throw new Error(testPayload.error || "AI 连接测试失败");
+      }
+      state.settings.model = model;
+      state.settings.baseUrl = baseUrl;
+      state.settings.apiProvider = provider;
+      state.settings.connectionMode = mode;
+      state.settings.proxyUrl = proxyUrl;
+      saveState();
+      $("#openai-key").value = "";
+      await checkAiHealth();
+      setFormMessage("ai-config-message", `${mode === "proxy" ? "代理" : mode === "backend" ? "本机服务" : "设备直连"}连接成功。现在可以拍照识别每餐。`, false, true);
+    } catch (error) {
+      setFormMessage("ai-config-message", error.message || "连接失败，请检查 Key、模型和网络。", true);
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function clearAiConfig() {
+    if (!confirm("移除当前设备保存的 AI 配置？照片识别将暂不可用。")) return;
+    try {
+      localStorage.removeItem(DIRECT_AI_KEY);
+      localStorage.removeItem(DASHSCOPE_AI_KEY);
+      localStorage.removeItem(DEEPSEEK_AI_KEY);
+      localStorage.removeItem(PROXY_TOKEN_KEY);
+      if (backendAvailable) {
+        await fetch("/api/config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ removeApiKey: true, model: state.settings.model, baseUrl: state.settings.baseUrl })
+        });
+      }
+      state.settings.proxyUrl = "";
+      state.settings.connectionMode = backendAvailable ? "backend" : "direct";
+      saveState();
+      await checkAiHealth();
+      $("#ai-proxy-url").value = "";
+      $("#ai-proxy-token").value = "";
+      setFormMessage("ai-config-message", "已移除当前设备上的 AI 配置。", false, true);
+    } catch (error) {
+      setFormMessage("ai-config-message", error.message, true);
+    }
+  }
+
+  function resetCarbModifier() {
+    state.carbModifier = 0;
+    state.lastAutoAdjustDate = null;
+    saveState();
+    renderAll();
+    showToast("已恢复为视频原始计算基线，不再叠加智能碳水修正。");
   }
 
   function exportData() {
-    const exportState = { ...state };
-    const blob = new Blob([JSON.stringify(exportState, null, 2)], {
-      type: "application/json"
-    });
-    const url = URL.createObjectURL(blob);
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      app: "轻脂航海图",
+      version: 1,
+      data: state
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const link = document.createElement("a");
-    link.href = url;
-    link.download = `食刻-饮食记录-${toDateISO(new Date())}.json`;
-    document.body.appendChild(link);
+    link.href = URL.createObjectURL(blob);
+    link.download = `轻脂航海图-备份-${localDateString()}.json`;
     link.click();
-    link.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-    toast("数据已导出");
+    setTimeout(() => URL.revokeObjectURL(link.href), 5000);
+    showToast("备份文件已导出。");
   }
 
-  async function importData(file) {
-    try {
-      const text = await file.text();
-      const imported = JSON.parse(text);
-      if (!imported || !Array.isArray(imported.meals) || !Array.isArray(imported.weights)) {
-        throw new Error("不是有效的食刻数据文件");
+  function importData(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onerror = () => showToast("备份文件读取失败。", true);
+    reader.onload = async () => {
+      try {
+        const payload = JSON.parse(reader.result);
+        const imported = payload.data || payload;
+        if (!imported.profile || !Array.isArray(imported.meals) || !Array.isArray(imported.weights)) {
+          throw new Error("文件不是有效的轻脂航海图备份");
+        }
+        if (!confirm("导入会覆盖当前浏览器中的全部记录，是否继续？")) return;
+        state = hydrateState(imported);
+        await writeStoredState(state);
+        populateSettings();
+        renderAll();
+        closeDialog("settings-dialog");
+        showToast("备份已导入。");
+      } catch (error) {
+        setFormMessage("settings-message", error.message || "导入失败。", true);
       }
-      if (!window.confirm("导入会覆盖当前计划与记录，继续吗？")) return;
-      state = {
-        ...createDefaultState(),
-        ...imported,
-        profile: { ...createDefaultState().profile, ...(imported.profile || {}) },
-        settings: { ...createDefaultState().settings, ...(imported.settings || {}) }
-      };
-      saveState();
-      renderAll();
-      toast("数据导入成功");
-    } catch (error) {
-      toast(error.message || "导入失败", "error");
-    }
+    };
+    reader.readAsText(file);
+  }
+
+  async function resetAllData() {
+    if (!confirm("确认清空全部饮食、照片、体重和设置？此操作无法撤销。")) return;
+    state = defaultState();
+    await writeStoredState(state);
+    populateSettings();
+    renderAll();
+    closeDialog("settings-dialog");
+    showToast("全部本地数据已清空。");
+  }
+
+  function saveDayNote() {
+    const date = state.selectedMealDate || localDateString();
+    state.dayNotes[date] = {
+      note: $("#day-note").value.trim(),
+      updatedAt: new Date().toISOString()
+    };
+    saveState();
+    showToast("今日备注已保存。");
   }
 
   function bindEvents() {
-    $$("[data-view]").forEach((button) => {
-      button.addEventListener("click", () => switchView(button.dataset.view));
-    });
-    $$("[data-view-link]").forEach((button) => {
-      button.addEventListener("click", (event) => {
+    document.addEventListener("click", event => {
+      const nav = event.target.closest("[data-view-link]");
+      if (nav) {
         event.preventDefault();
-        switchView(button.dataset.viewLink);
-      });
-    });
-
-    $("#prev-day").addEventListener("click", () => {
-      selectedDate = shiftDate(selectedDate, -1);
-      renderToday();
-    });
-    $("#next-day").addEventListener("click", () => {
-      if (selectedDate >= toDateISO(new Date())) return;
-      selectedDate = shiftDate(selectedDate, 1);
-      renderToday();
-    });
-    $("#go-today").addEventListener("click", () => {
-      selectedDate = toDateISO(new Date());
-      renderToday();
-    });
-    $("#date-button").addEventListener("click", () => {
-      const input = $("#date-input");
-      if (input.showPicker) input.showPicker();
-      else input.click();
-    });
-    $("#date-input").addEventListener("change", (event) => {
-      if (event.target.value) {
-        selectedDate = event.target.value > toDateISO(new Date()) ? toDateISO(new Date()) : event.target.value;
-        renderToday();
-      }
-    });
-
-    $$("[data-open-meal]").forEach((button) => {
-      button.addEventListener("click", () => openMealModal(button.dataset.openMeal));
-    });
-    $("#floating-add").addEventListener("click", () => openMealModal("lunch"));
-    $("#mobile-add").addEventListener("click", () => openMealModal("lunch"));
-    $("#mobile-profile").addEventListener("click", () => switchView("settings"));
-    $("#quick-weight").addEventListener("click", () => openWeightModal());
-    $("#quick-text").addEventListener("click", () => {
-      openMealModal(currentMealType());
-      window.setTimeout(() => $("#meal-text")?.focus({ preventScroll: true }), 90);
-    });
-    $("#quick-photo").addEventListener("click", () => {
-      openMealModal(currentMealType());
-      $("#meal-photo-input")?.click();
-    });
-    $("#add-weight").addEventListener("click", () => openWeightModal());
-    $("#add-weight-trend").addEventListener("click", () => openWeightModal());
-    $("#add-weight-chart").addEventListener("click", () => openWeightModal());
-    $("#sidebar-profile").addEventListener("click", () => switchView("settings"));
-    $("#insight-shortcut").addEventListener("click", () => switchView("trends"));
-
-    $("#meal-list").addEventListener("click", (event) => {
-      const open = event.target.closest("[data-open-meal]");
-      if (open) {
-        openMealModal(open.dataset.openMeal);
+        setActiveView(nav.dataset.viewLink);
         return;
       }
-      const edit = event.target.closest("[data-edit-meal]");
-      if (edit) {
-        const meal = state.meals.find((item) => item.id === edit.dataset.editMeal);
-        openMealModal(meal?.type || "lunch", edit.dataset.editMeal);
+      const mealButton = event.target.closest("[data-open-meal]");
+      if (mealButton) {
+        openMealDialog(mealButton.dataset.mealDate || state.selectedMealDate || localDateString());
         return;
       }
-      const remove = event.target.closest("[data-delete-meal]");
-      if (remove) {
-        if (!window.confirm("删除这一餐？")) return;
-        state.meals = state.meals.filter((meal) => meal.id !== remove.dataset.deleteMeal);
-        saveState();
-        renderToday();
-        toast("这一餐已删除");
+      if (event.target.closest("[data-open-weight]")) {
+        openWeightDialog();
         return;
       }
-      const lightbox = event.target.closest("[data-lightbox]");
-      if (lightbox) showLightbox(lightbox.dataset.lightbox);
-    });
-
-    $("#modal-backdrop").addEventListener("click", (event) => {
-      if (event.target.id === "modal-backdrop" || event.target.closest("[data-close-modal]")) {
-        closeModal();
+      if (event.target.closest("[data-open-settings]")) {
+        openSettings();
+        return;
+      }
+      const closeButton = event.target.closest("[data-close-dialog]");
+      if (closeButton) {
+        closeDialog(closeButton.dataset.closeDialog);
+        return;
+      }
+      const editMeal = event.target.closest("[data-edit-meal]");
+      if (editMeal) {
+        const meal = state.meals.find(item => item.id === editMeal.dataset.editMeal);
+        if (meal) openMealDialog(meal.date, meal);
+        return;
+      }
+      const deleteMealButton = event.target.closest("[data-delete-meal]");
+      if (deleteMealButton) {
+        deleteMeal(deleteMealButton.dataset.deleteMeal);
+        return;
+      }
+      const deleteWeightButton = event.target.closest("[data-delete-weight]");
+      if (deleteWeightButton) {
+        deleteWeight(deleteWeightButton.dataset.deleteWeight);
+        return;
+      }
+      const removePhoto = event.target.closest("[data-remove-photo]");
+      if (removePhoto) {
+        draftMeal.images.splice(Number(removePhoto.dataset.removePhoto), 1);
+        renderPhotoPreviews();
+        return;
+      }
+      const removeFood = event.target.closest("[data-remove-food]");
+      if (removeFood) {
+        draftMeal.items.splice(Number(removeFood.dataset.removeFood), 1);
+        renderDraftItems();
       }
     });
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") {
-        const lightbox = $(".lightbox");
-        if (lightbox) lightbox.remove();
-        else if (!$("#modal-backdrop").hidden) closeModal();
-      }
-    });
 
-    $("#setting-sessions").addEventListener("input", updateSettingsPreview);
-    $("#setting-weight").addEventListener("input", updateSettingsPreview);
-    $("#manual-target-toggle").addEventListener("change", (event) => {
-      $("#manual-target-fields").classList.toggle("is-visible", event.target.checked);
-      if (event.target.checked) {
-        const target = getTargets();
-        $("#manual-carb").value = target.carbs;
-        $("#manual-protein").value = target.protein;
-        $("#manual-fat").value = target.fat;
-      }
-      updateSettingsPreview();
-    });
-    ["manual-carb", "manual-protein", "manual-fat"].forEach((id) => {
-      $(`#${id}`).addEventListener("input", updateSettingsPreview);
-    });
-
-    $("#profile-form").addEventListener("submit", (event) => {
-      event.preventDefault();
-      const weight = Number($("#setting-weight").value);
-      const goalWeight = Number($("#setting-goal-weight").value);
-      if (!isValidProfile(weight, goalWeight)) return;
-      const manual = $("#manual-target-toggle").checked;
-      state.profile = {
-        ...state.profile,
-        name: $("#setting-name").value.trim(),
-        height: Number($("#setting-height").value) || "",
-        weight: round(weight, 1),
-        goalWeight: round(goalWeight, 1),
-        sessions: Number($("#setting-sessions").value),
-        setupComplete: true,
-        targetMode: manual ? "manual" : "auto",
-        customTargets: manual
-          ? {
-              carbs: Number($("#manual-carb").value) || 0,
-              protein: Number($("#manual-protein").value) || 0,
-              fat: Number($("#manual-fat").value) || 0
-            }
-          : null
-      };
-      saveState();
-      renderAll();
-      toast("计划已保存");
-    });
-
-    $("#ai-form").addEventListener("submit", (event) => {
-      event.preventDefault();
-      state.settings.endpoint =
-        $("#setting-api-endpoint").value.trim() || "/api/analyze";
-      state.settings.upstream =
-        $("#setting-api-upstream").value.trim() ||
-        "https://api.openai.com/v1/chat/completions";
-      state.settings.model = $("#setting-api-model").value.trim() || "gpt-4.1-mini";
-      state.settings.rememberKey = $("#remember-key").checked;
-      setApiKey($("#setting-api-key").value.trim());
-      saveState();
-      toast("AI 设置已保存");
-    });
-
-    $("#test-ai").addEventListener("click", testAIConnection);
-    $("#export-data").addEventListener("click", exportData);
-    $("#import-data").addEventListener("change", (event) => {
-      const file = event.target.files?.[0];
-      if (file) importData(file);
+    $("#choose-meal-photos").addEventListener("click", () => $("#meal-photos").click());
+    $("#choose-meal-camera").addEventListener("click", () => $("#meal-camera-input").click());
+    $("#meal-photos").addEventListener("change", event => {
+      handleFiles(event.target.files);
       event.target.value = "";
     });
-    $("#load-demo").addEventListener("click", () => {
-      loadDemoData(true);
-      renderAll();
-      toast("示例已载入");
+    $("#meal-camera-input").addEventListener("change", event => {
+      handleFiles(event.target.files);
+      event.target.value = "";
     });
-    $("#reset-data").addEventListener("click", () => {
-      if (!window.confirm("确定清空所有饮食、体重与计划数据吗？此操作无法撤销。")) return;
-      state = createDefaultState();
-      safeStorageRemove(localStorage, KEY_LOCAL);
-      safeStorageRemove(sessionStorage, KEY_SESSION);
+
+    const dropzone = $("#photo-dropzone");
+    ["dragenter", "dragover"].forEach(name => dropzone.addEventListener(name, event => {
+      event.preventDefault();
+      dropzone.classList.add("dragging");
+    }));
+    ["dragleave", "drop"].forEach(name => dropzone.addEventListener(name, event => {
+      event.preventDefault();
+      dropzone.classList.remove("dragging");
+    }));
+    dropzone.addEventListener("drop", event => handleFiles(event.dataTransfer.files));
+
+    $("#analyze-meal").addEventListener("click", analyzeMeal);
+    $("#manual-meal").addEventListener("click", manualMealEntry);
+    $("#meal-form").addEventListener("submit", saveDraftMeal);
+    $("#weight-form").addEventListener("submit", saveWeight);
+    $("#settings-form").addEventListener("submit", saveSettings);
+
+    $("#food-items").addEventListener("input", event => {
+      const row = event.target.closest("[data-food-index]");
+      if (!row || !draftMeal) return;
+      const index = Number(row.dataset.foodIndex);
+      const field = event.target.dataset.field;
+      if (!field || !draftMeal.items[index]) return;
+      draftMeal.items[index][field] = field === "name" || field === "portion"
+        ? event.target.value
+        : num(event.target.value);
+      updateDraftTotals();
+    });
+    $("#add-food-row").addEventListener("click", () => {
+      draftMeal.items.push(defaultFoodItem());
+      renderDraftItems();
+    });
+
+    $("#meal-date-picker").addEventListener("change", event => {
+      state.selectedMealDate = event.target.value;
       saveState();
-      renderAll();
-      openSetupModal();
-      toast("数据已清空");
+      renderMealsView();
     });
-    $("#apply-adjustment").addEventListener("click", openAdjustmentModal);
-  }
-
-  async function testAIConnection() {
-    const endpoint = $("#setting-api-endpoint").value.trim();
-    const model = $("#setting-api-model").value.trim();
-    const key = $("#setting-api-key").value.trim();
-    const isLocalProxy = endpoint.startsWith("/");
-    if (!endpoint || !model || (!isLocalProxy && !key)) {
-      toast("请先填写 API 地址和模型名称；直连接口还需要 Key", "error");
-      return;
-    }
-    if (isLocalProxy && location.protocol === "file:") {
-      toast("请运行 start-server.ps1 后通过本地网址打开", "error");
-      return;
-    }
-    const button = $("#test-ai");
-    button.disabled = true;
-    button.textContent = "连接中…";
-    try {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(isLocalProxy
-            ? {
-                "X-Shike-Upstream":
-                  $("#setting-api-upstream").value.trim() ||
-                  "https://api.openai.com/v1/chat/completions"
-              }
-            : {}),
-          ...(key ? { Authorization: `Bearer ${key}` } : {})
-        },
-        body: JSON.stringify({
-          model,
-          messages: [{ role: "user", content: "只回复 OK" }],
-          max_tokens: 18
-        })
+    $("#meal-date-prev").addEventListener("click", () => {
+      state.selectedMealDate = addDays(state.selectedMealDate || localDateString(), -1);
+      saveState();
+      renderMealsView();
+    });
+    $("#meal-date-next").addEventListener("click", () => {
+      state.selectedMealDate = addDays(state.selectedMealDate || localDateString(), 1);
+      saveState();
+      renderMealsView();
+    });
+    $("#meal-date-today").addEventListener("click", () => {
+      state.selectedMealDate = localDateString();
+      saveState();
+      renderMealsView();
+    });
+    $("#save-day-note").addEventListener("click", saveDayNote);
+    $("#reset-carb-modifier").addEventListener("click", resetCarbModifier);
+    $("#save-ai-config").addEventListener("click", saveAiConfig);
+    $("#clear-ai-config").addEventListener("click", clearAiConfig);
+    $$('input[name="ai-connection-mode"]').forEach(input => {
+      input.addEventListener("change", () => {
+        updateAiModePanels(input.value);
+        setFormMessage("ai-config-message", "");
       });
-      const data = await response.json().catch(() => null);
-      if (!response.ok) {
-        throw new Error(data?.error?.message || `接口返回 ${response.status}`);
-      }
-      toast("AI 接口连接成功");
-    } catch (error) {
-      toast(`连接失败：${error.message}`, "error");
-    } finally {
-      button.disabled = false;
-      button.textContent = "测试连接";
-    }
-  }
-
-  function showLightbox(src) {
-    const lightbox = document.createElement("div");
-    lightbox.className = "lightbox";
-    lightbox.innerHTML = `<button type="button" aria-label="关闭">×</button><img src="${src}" alt="餐食照片放大">`;
-    lightbox.addEventListener("click", (event) => {
-      if (event.target === lightbox || event.target.tagName === "BUTTON") lightbox.remove();
     });
-    document.body.appendChild(lightbox);
+    $("#ai-provider").addEventListener("change", () => {
+      updateProviderFields(true);
+      setFormMessage("ai-config-message", "");
+    });
+    $("#toggle-key-visibility").addEventListener("click", () => {
+      const input = $("#openai-key");
+      input.type = input.type === "password" ? "text" : "password";
+      $("#toggle-key-visibility").textContent = input.type === "password" ? "显示" : "隐藏";
+    });
+    $("#export-data").addEventListener("click", exportData);
+    $("#import-data").addEventListener("click", () => $("#import-file").click());
+    $("#import-file").addEventListener("change", event => {
+      importData(event.target.files?.[0]);
+      event.target.value = "";
+    });
+    $("#reset-all-data").addEventListener("click", resetAllData);
+
+    $$("dialog").forEach(dialog => {
+      dialog.addEventListener("cancel", () => {
+        setTimeout(() => {
+          if (!$$("dialog[open]").length) document.body.style.overflow = "";
+        }, 0);
+      });
+      dialog.addEventListener("click", event => {
+        if (event.target === dialog) closeDialog(dialog.id);
+      });
+    });
+
+    window.addEventListener("online", () => showToast("网络连接已恢复。"));
+    window.addEventListener("offline", () => showToast("当前离线，已有记录仍可继续编辑。"));
   }
 
-  function init() {
-    state = loadState();
+  async function initialize() {
+    try {
+      const stored = await readStoredState();
+      state = hydrateState(stored);
+      if (!state.weights.length && num(state.profile.weight)) {
+        state.weights.push({
+          id: uid(),
+          date: state.profile.startDate || localDateString(),
+          weight: num(state.profile.weight),
+          note: "初始体重",
+          createdAt: new Date().toISOString()
+        });
+        await writeStoredState(state);
+      }
+    } catch (error) {
+      console.error(error);
+      state = defaultState();
+    }
     bindEvents();
     renderAll();
-    updateDateUI();
-    renderPlan();
-    if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
-      navigator.serviceWorker.register("./sw.js").catch(() => {
-        // The app remains fully usable when offline support is unavailable.
-      });
+    await checkAiHealth();
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
     }
-    if (!state.profile.setupComplete) {
-      window.setTimeout(openSetupModal, 80);
-    }
-    window.__appReady = true;
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init, { once: true });
-  } else {
-    init();
-  }
+  initialize();
 })();
