@@ -908,7 +908,7 @@
       return;
     }
     if (!aiHealth.configured) {
-      setFormMessage("meal-form-message", "请先在设置中连接 OpenAI API Key。", true);
+      setFormMessage("meal-form-message", "请先在设置中配置 AI 服务，推荐使用 DeepSeek。", true);
       closeDialog("meal-dialog");
       openSettings();
       return;
@@ -1879,7 +1879,7 @@ ${targetText}
     renderAll();
     await checkAiHealth();
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("sw.js?v=20261107-deepseek").catch(() => {});
+      navigator.serviceWorker.register("sw.js?v=20261107-gallery").catch(() => {});
     }
   }
 

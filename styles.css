@@ -1539,9 +1539,16 @@ dialog::backdrop {
   font-size: 10px;
 }
 
+.photo-source-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
 .mobile-camera {
-  display: none;
-  margin-top: 9px;
+  display: inline-flex;
 }
 
 .photo-dropzone.dragging {
@@ -2300,10 +2307,6 @@ dialog::backdrop {
   .ai-hint {
     width: 100%;
     margin-left: 0;
-  }
-
-  .mobile-camera {
-    display: inline-flex;
   }
 
   .food-row {
