@@ -1,4 +1,4 @@
-const CACHE_NAME = "leanflow-v10";
+const CACHE_NAME = "leanflow-v11";
 const APP_SHELL = [
   "./",
   "index.html",

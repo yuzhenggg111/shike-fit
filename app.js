@@ -136,6 +136,7 @@
       weights: [],
       meals: [],
       dayNotes: {},
+      habitReports: [],
       carbModifier: 0,
       lastAutoAdjustDate: null,
       selectedMealDate: today
@@ -159,14 +160,22 @@
       mergedSettings.model = "deepseek-flash";
       mergedSettings.baseUrl = "https://api.deepseek.com";
     }
+    const meals = Array.isArray(stored.meals)
+      ? stored.meals.map(meal => ({
+          ...meal,
+          id: meal.id && meal.id !== "null" ? meal.id : uid(),
+          items: Array.isArray(meal.items) ? meal.items : []
+        }))
+      : [];
     return {
       ...base,
       ...stored,
       profile: { ...base.profile, ...(stored.profile || {}) },
       settings: mergedSettings,
       weights: Array.isArray(stored.weights) ? stored.weights : [],
-      meals: Array.isArray(stored.meals) ? stored.meals : [],
+      meals,
       dayNotes: stored.dayNotes && typeof stored.dayNotes === "object" ? stored.dayNotes : {},
+      habitReports: Array.isArray(stored.habitReports) ? stored.habitReports : [],
       carbModifier: num(stored.carbModifier),
       selectedMealDate: stored.selectedMealDate || base.selectedMealDate
     };
@@ -189,6 +198,16 @@
 
   function saveState() {
     persistedSave();
+  }
+
+  async function saveStateNow() {
+    try {
+      await writeStoredState(state);
+    } catch (error) {
+      console.error(error);
+      showToast("本地保存失败，请先导出备份。", true);
+      throw error;
+    }
   }
 
   function showToast(message, isError = false) {
@@ -592,6 +611,7 @@
           <span>${DAY_NAMES[parseLocalDate(day.date).getDay()].replace("周", "")}</span>
         </div>`;
     }).join("");
+    renderHabitReport();
   }
 
   function buildWeeklyInsights(report) {
@@ -631,6 +651,333 @@
       else insights.push(`本周体重变化约 ${round(rate, 2)}%，处于常见参考范围。`);
     }
     return insights.slice(0, 4);
+  }
+
+  function buildHabitDataset(periodDays) {
+    const endDate = localDateString();
+    const startDate = addDays(endDate, -(periodDays - 1));
+    const meals = state.meals
+      .filter(meal => meal.date >= startDate && meal.date <= endDate)
+      .sort((a, b) => a.date.localeCompare(b.date) || a.createdAt.localeCompare(b.createdAt));
+    const dateSet = [...new Set(meals.map(meal => meal.date))].sort();
+    const days = dateSet.map(date => {
+      const dayMeals = meals.filter(meal => meal.date === date);
+      const totals = dayTotals(date);
+      return {
+        date,
+        dayType: [0, 6].includes(parseLocalDate(date).getDay()) ? "周末" : "工作日",
+        totals,
+        meals: dayMeals.map(meal => ({
+          type: MEAL_META[meal.type]?.name || "加餐",
+          title: meal.title || "",
+          description: meal.description || "",
+          items: (meal.items || []).map(item => ({
+            name: item.name || "",
+            portion: item.portion || "",
+            protein: round(item.protein, 1),
+            carbs: round(item.carbs, 1),
+            fat: round(item.fat, 1)
+          }))
+        }))
+      };
+    });
+
+    const mealTypeCounts = { 早餐: 0, 午餐: 0, 晚餐: 0, 加餐: 0 };
+    const foodMap = new Map();
+    meals.forEach(meal => {
+      const typeName = MEAL_META[meal.type]?.name || "加餐";
+      mealTypeCounts[typeName] = (mealTypeCounts[typeName] || 0) + 1;
+      (meal.items || []).forEach(item => {
+        const name = String(item.name || "").trim();
+        if (!name) return;
+        const key = name.toLowerCase();
+        if (!foodMap.has(key)) {
+          foodMap.set(key, { name, count: 0, grams: 0 });
+        }
+        const entry = foodMap.get(key);
+        entry.count += 1;
+        const grams = Number.parseFloat(String(item.portion || "").match(/(\d+(?:\.\d+)?)\s*(?:g|克)/i)?.[1] || "0");
+        entry.grams += Number.isFinite(grams) ? grams : 0;
+      });
+    });
+
+    const totalMeals = meals.length;
+    const loggedDays = days.length;
+    const avg = key => loggedDays
+      ? round(days.reduce((sum, day) => sum + num(day.totals[key]), 0) / loggedDays, 1)
+      : 0;
+    const weekdayDays = days.filter(day => day.dayType === "工作日");
+    const weekendDays = days.filter(day => day.dayType === "周末");
+    const categoryAverage = list => list.length
+      ? round(list.reduce((sum, day) => sum + num(day.totals.calories), 0) / list.length)
+      : null;
+    const weights = state.weights
+      .filter(entry => entry.date >= startDate && entry.date <= endDate)
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    return {
+      periodDays,
+      startDate,
+      endDate,
+      personal: {
+        sex: state.profile.sex,
+        height: state.profile.height,
+        currentWeight: round(currentWeight(), 1),
+        goalWeight: round(state.profile.goalWeight, 1),
+        weeklyExerciseHours: state.profile.weeklyExerciseHours,
+        targets: getTargets()
+      },
+      stats: {
+        loggedDays,
+        totalMeals,
+        averageMealsPerLoggedDay: loggedDays ? round(totalMeals / loggedDays, 1) : 0,
+        mealTypeCounts,
+        averagePerLoggedDay: {
+          protein: avg("protein"),
+          carbs: avg("carbs"),
+          fat: avg("fat"),
+          calories: avg("calories")
+        },
+        weekdayAverageCalories: categoryAverage(weekdayDays),
+        weekendAverageCalories: categoryAverage(weekendDays),
+        weightStart: weights.length ? round(weights[0].weight, 1) : null,
+        weightEnd: weights.length ? round(weights.at(-1).weight, 1) : null
+      },
+      frequentFoods: [...foodMap.values()]
+        .sort((a, b) => b.count - a.count || b.grams - a.grams)
+        .slice(0, 20),
+      recentDailyRecords: days.slice(-30)
+    };
+  }
+
+  function normalizeHabitReport(payload, range) {
+    return {
+      id: uid(),
+      range,
+      createdAt: new Date().toISOString(),
+      title: String(payload.title || `${range} 天饮食规律分析`),
+      summary: String(payload.summary || payload.period_summary || "已完成饮食规律分析。"),
+      dataConfidence: clamp(num(payload.data_confidence, 0.5), 0, 1),
+      patterns: Array.isArray(payload.patterns) ? payload.patterns.slice(0, 8).map(item => ({
+        name: String(item.name || "饮食模式"),
+        evidence: String(item.evidence || ""),
+        impact: String(item.impact || ""),
+        suggestion: String(item.suggestion || "")
+      })) : [],
+      frequentFoods: Array.isArray(payload.frequent_foods)
+        ? payload.frequent_foods.map(item => typeof item === "string" ? item : item?.name || "").filter(Boolean).slice(0, 12)
+        : [],
+      strengths: Array.isArray(payload.strengths) ? payload.strengths.map(String).slice(0, 6) : [],
+      risks: Array.isArray(payload.risks) ? payload.risks.map(String).slice(0, 6) : [],
+      recommendations: Array.isArray(payload.recommendations) ? payload.recommendations.slice(0, 8).map(item => ({
+        priority: String(item.priority || "中"),
+        action: String(item.action || item.suggestion || ""),
+        reason: String(item.reason || "")
+      })) : [],
+      nextWeekFocus: Array.isArray(payload.next_week_focus) ? payload.next_week_focus.map(String).slice(0, 5) : []
+    };
+  }
+
+  function latestHabitReport(range) {
+    return [...(state.habitReports || [])]
+      .filter(report => num(report.range) === num(range))
+      .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))[0] || null;
+  }
+
+  function renderHabitReport() {
+    const range = num($("#habit-range")?.value, 30);
+    const report = latestHabitReport(range);
+    const container = $("#habit-report");
+    if (!container) return;
+    if (!report) {
+      const dataset = buildHabitDataset(range);
+      container.innerHTML = `
+        <div class="habit-report-empty">
+          <div>
+            <strong>${dataset.stats.loggedDays ? `已找到 ${dataset.stats.loggedDays} 个有记录的日期` : "还没有足够的饮食记录"}</strong>
+            <p>生成后会分析你最常吃什么、三餐是否规律、工作日和周末差异、蛋白质和油脂来源，并结合体重趋势给出可执行建议。</p>
+          </div>
+        </div>`;
+      return;
+    }
+
+    const patternHtml = report.patterns.length
+      ? report.patterns.map(pattern => `
+          <div class="habit-pattern">
+            <strong>${escapeHtml(pattern.name)}</strong>
+            <p>${escapeHtml([pattern.evidence, pattern.impact, pattern.suggestion].filter(Boolean).join(" · "))}</p>
+          </div>`).join("")
+      : `<p class="section-description">本次没有识别出稳定重复的饮食模式。</p>`;
+    const recommendations = report.recommendations.length
+      ? report.recommendations.map(item => `
+          <div class="habit-recommendation">
+            <span>${escapeHtml(item.priority)}优先</span>
+            <p><strong>${escapeHtml(item.action)}</strong>${item.reason ? `<br>${escapeHtml(item.reason)}` : ""}</p>
+          </div>`).join("")
+      : `<div class="habit-recommendation"><span>建议</span><p>继续保持当前记录频率。</p></div>`;
+    const frequentFoods = report.frequentFoods.length
+      ? report.frequentFoods.map(food => `<span>${escapeHtml(food)}</span>`).join("")
+      : "<span>暂无足够数据</span>";
+
+    container.innerHTML = `
+      <div class="habit-summary-card">
+        <span>AI HABIT INSIGHT</span>
+        <h4>${escapeHtml(report.title)}</h4>
+        <p>${escapeHtml(report.summary)}</p>
+        <div class="habit-summary-meta">
+          <span>分析周期 ${report.range} 天</span>
+          <span>数据置信度 ${Math.round(report.dataConfidence * 100)}%</span>
+          <span>${formatShortDate(localDateString(report.createdAt ? new Date(report.createdAt) : new Date()))}</span>
+        </div>
+      </div>
+      <div class="habit-grid">
+        <div class="habit-list-card">
+          <h4>稳定出现的模式</h4>
+          ${patternHtml}
+        </div>
+        <div class="habit-list-card">
+          <h4>优化建议</h4>
+          <div class="habit-recommendations">${recommendations}</div>
+        </div>
+        <div class="habit-list-card">
+          <h4>最常出现的食物</h4>
+          <div class="food-frequency">${frequentFoods}</div>
+        </div>
+        <div class="habit-list-card">
+          <h4>下一阶段重点</h4>
+          <div class="insight-list">
+            ${(report.nextWeekFocus.length ? report.nextWeekFocus : report.strengths).map((item, index) => `
+              <div class="insight"><span>${String(index + 1).padStart(2, "0")}</span><p>${escapeHtml(item)}</p></div>
+            `).join("") || "<p class=\"section-description\">继续记录几天后再复盘。</p>"}
+          </div>
+        </div>
+      </div>`;
+  }
+
+  async function analyzeHabits() {
+    const button = $("#analyze-habits");
+    const range = num($("#habit-range").value, 30);
+    const dataset = buildHabitDataset(range);
+    if (!aiHealth.configured) {
+      setFormMessage("habit-analysis-message", "请先在设置中配置 DeepSeek AI。", true);
+      openSettings();
+      return;
+    }
+    if (aiMode !== "direct") {
+      setFormMessage("habit-analysis-message", "饮食规律分析目前需要切换为“设备直连”模式。", true);
+      return;
+    }
+    if (!dataset.stats.totalMeals) {
+      setFormMessage("habit-analysis-message", "当前周期还没有饮食记录。", true);
+      return;
+    }
+    if (dataset.stats.loggedDays < 3) {
+      setFormMessage("habit-analysis-message", `目前只有 ${dataset.stats.loggedDays} 天记录，至少记录 3 天后分析会更可靠。`, true);
+      return;
+    }
+
+    const provider = state.settings.apiProvider || "deepseek";
+    const apiKey = localStorage.getItem(directKeyStorageName(provider)) || "";
+    const providerName = provider === "dashscope" ? "阿里云百炼" : provider === "deepseek" ? "DeepSeek" : "OpenAI";
+    const baseUrl = (state.settings.baseUrl || "https://api.deepseek.com").replace(/\/+$/, "");
+    const model = state.settings.model || "deepseek-flash";
+    button.disabled = true;
+    setFormMessage("habit-analysis-message", "正在分析最近记录…");
+    $("#habit-report").innerHTML = `
+      <div class="habit-analysis-loading">
+        <div class="analysis-loader"><span></span><span></span><span></span></div>
+        <span>正在归纳饮食时间、常吃食物、工作日与周末差异以及营养趋势…</span>
+      </div>`;
+
+    const systemPrompt = `你是严谨的中文减脂饮食行为分析师。你会收到用户最近一段时间的饮食记录文字摘要、个人资料、每日目标、饮食频次和体重趋势。
+
+请分析：
+1. 三餐和加餐是否规律，是否存在明显漏餐、夜间进食或周末集中摄入；
+2. 最常重复的食物、蛋白质来源、主食来源、蔬菜、油脂和零食来源；
+3. 哪些习惯有利于减脂，哪些习惯可能导致热量、脂肪或蛋白质偏差；
+4. 工作日和周末、记录完整度、体重变化之间的关系；
+5. 根据用户实际饮食给出具体、生活化的优化动作。
+
+要求：
+- 只根据提供的数据推断，并明确数据不足和记录缺口。
+- 不提供疾病诊断，不推荐极端节食。
+- 建议要具体到食物替换、份量、频率或执行时机。
+- 不要把短期单日波动当成长期规律。
+- 只返回一个 JSON 对象，不要 Markdown 或额外文字。`;
+    const userPrompt = `请分析以下数据，并返回此 JSON 结构：
+{
+  "title": "简短报告标题",
+  "summary": "约 120-200 字的整体饮食规律总结",
+  "data_confidence": 0.0,
+  "patterns": [
+    {"name": "饮食模式名称", "evidence": "数据证据", "impact": "对减脂的影响", "suggestion": "如何调整"}
+  ],
+  "frequent_foods": ["常吃食物"],
+  "strengths": ["已有优势"],
+  "risks": ["需要关注的模式"],
+  "recommendations": [
+    {"priority": "高/中/低", "action": "具体动作", "reason": "原因"}
+  ],
+  "next_week_focus": ["下一周最重要的 1-3 件事"]
+}
+
+饮食数据：
+${JSON.stringify(dataset)}`;
+
+    const requestBody = {
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      temperature: 0.2,
+      max_tokens: 3200,
+      stream: false
+    };
+    if (provider === "deepseek") requestBody.thinking = { type: "disabled" };
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 90000);
+    try {
+      const response = await fetch(`${baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error?.message || payload.message || `${providerName}分析失败（HTTP ${response.status}）`);
+      }
+      const message = payload.choices?.[0]?.message || {};
+      const content = message.content || message.reasoning_content || "";
+      const text = Array.isArray(content)
+        ? content.map(item => item.text || item.content || "").join("\n")
+        : String(content || "");
+      if (!text.trim()) throw new Error(`${providerName}没有返回饮食规律分析结果。`);
+      const parsed = extractJsonFromModel(text, providerName);
+      const report = normalizeHabitReport(parsed, range);
+      state.habitReports = [
+        report,
+        ...(state.habitReports || []).filter(item => num(item.range) !== range)
+      ].slice(0, 12);
+      await saveStateNow();
+      setFormMessage("habit-analysis-message", "分析完成并已保存。", false, true);
+      renderHabitReport();
+    }
+    catch (error) {
+      console.error(error);
+      const isTimeout = error.name === "AbortError";
+      setFormMessage("habit-analysis-message", isTimeout ? "分析超时，请缩短周期后重试。" : (error.message || "分析失败，请重试。"), true);
+      renderHabitReport();
+    }
+    finally {
+      clearTimeout(timeout);
+      button.disabled = false;
+    }
   }
 
   function buildMiniWeightChart(entries) {
@@ -1252,6 +1599,7 @@ ${targetText}
   async function saveDraftMeal(event) {
     event.preventDefault();
     if (!draftMeal) return;
+    if (!draftMeal.id) draftMeal.id = uid();
     draftMeal.date = $("#meal-date").value || localDateString();
     draftMeal.type = $("#meal-type").value;
     draftMeal.description = $("#meal-description").value.trim();
@@ -1270,7 +1618,7 @@ ${targetText}
     if (existingIndex >= 0) state.meals[existingIndex] = mealToSave;
     else state.meals.push(mealToSave);
     state.selectedMealDate = mealToSave.date;
-    saveState();
+    await saveStateNow();
     closeDialog("meal-dialog");
     renderAll();
     showToast(existingIndex >= 0 ? "这一餐已更新。" : "这一餐已记入今天的饮食。");
@@ -1873,6 +2221,8 @@ ${targetText}
     });
     $("#save-day-note").addEventListener("click", saveDayNote);
     $("#reset-carb-modifier").addEventListener("click", resetCarbModifier);
+    $("#analyze-habits").addEventListener("click", analyzeHabits);
+    $("#habit-range").addEventListener("change", renderHabitReport);
     $("#save-ai-config").addEventListener("click", saveAiConfig);
     $("#clear-ai-config").addEventListener("click", clearAiConfig);
     $$('input[name="ai-connection-mode"]').forEach(input => {
@@ -1911,6 +2261,14 @@ ${targetText}
 
     window.addEventListener("online", () => showToast("网络连接已恢复。"));
     window.addEventListener("offline", () => showToast("当前离线，已有记录仍可继续编辑。"));
+    window.addEventListener("pagehide", () => {
+      writeStoredState(state).catch(() => {});
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") {
+        writeStoredState(state).catch(() => {});
+      }
+    });
   }
 
   async function initialize() {
@@ -1935,7 +2293,7 @@ ${targetText}
     renderAll();
     await checkAiHealth();
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("sw.js?v=20261107-universal3").catch(() => {});
+      navigator.serviceWorker.register("sw.js?v=20261109-habits").catch(() => {});
     }
   }
 
